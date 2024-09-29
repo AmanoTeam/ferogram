@@ -1,0 +1,22 @@
+[package]
+name = "ferogram"
+version = "0.1.0"
+authors = ["Andriel Ferreira <andrielfr@proton.me>"]
+license = "MIT OR Apache-2.0"
+description = """
+Ferogram is a simple telegram bot framework written in Rust.
+"""
+homepage = "https://github.com/AndrielFR/ferogram"
+repository = "https://github.com/AndrielFR/ferogram"
+keywords = ["telegram", "bot", "framework", "grammers"]
+edition = "2021"
+
+[features]
+macros = ["ferogram-macros"]
+
+[dependencies]
+ferogram-macros = { path = "../ferogram-macros", optional = true }
+grammers-client = { git = "https://github.com/Lonami/grammers" }
+
+tokio = { version = "1.40.0", features = ["fs", "rt"] }
+rpassword = "7.3.1"

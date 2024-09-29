@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "lib/ferogram",
+    "lib/ferogram-macros",
+]
+resolver = "2"
