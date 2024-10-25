@@ -185,3 +185,14 @@ pub async fn left_chat_member(_: Client, update: Update) -> bool {
 
     false
 }
+
+/// Pass if the update is a typing action.
+pub async fn typing(_: Client, update: Update) -> bool {
+    if let Update::Raw(raw_update) = update {
+        return matches!(
+            raw_update,
+            tl::enums::Update::UserTyping(_) | tl::enums::Update::ChatUserTyping(_)
+        );
+    }
+    false
+}

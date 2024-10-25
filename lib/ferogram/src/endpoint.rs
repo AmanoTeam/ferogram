@@ -12,6 +12,8 @@ use grammers_client::{Client, Update};
 use crate::Result;
 
 /// Update endpoint.
+///
+/// If filter pass, handle the update.
 pub trait Endpoint: Send + Sync + 'static {
     /// Handle the update.
     fn handle(&self, client: Client, update: Update) -> BoxFuture<'static, Result<()>>;

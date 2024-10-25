@@ -13,26 +13,26 @@ use crate::{Handler, Result};
 /// Dispatcher's router
 #[derive(Clone, Default)]
 pub struct Router {
-    handler: Vec<Handler>,
+    handlers: Vec<Handler>,
     routers: Vec<Router>,
 }
 
 impl Router {
     /// Attach a new handler.
     pub fn handler(mut self, handler: Handler) -> Self {
-        self.handler.push(handler);
+        self.handlers.push(handler);
         self
     }
 
     /// Iterate over router's handlers.
     pub fn iter_handlers(&self) -> impl Iterator<Item = &Handler> {
-        self.handler.iter()
+        self.handlers.iter()
     }
 
     /// Attach a new router.
     pub fn router<R: FnOnce(Router) -> Router + 'static>(mut self, router: R) -> Self {
         let router = router(Self::default());
-        self.handler.extend(router.handler);
+        self.handlers.extend(router.handlers);
         self
     }
 
@@ -76,11 +76,15 @@ mod tests {
     use crate::handler;
 
     #[test]
-    fn test_router() {
+    fn router() {
+        let filter = |_, _| async { true };
+        let endpoint = |_, _| async { Ok(()) };
+
         let router = Router::default()
             .handler(handler::then(|_, _| async { Ok(()) }))
-            .handler(handler::new_message(|_, _| async { true }));
+            .handler(handler::new_message(|_, _| async { true }))
+            .handler(handler::new_update(filter).then(endpoint));
 
-        assert_eq!(router.handler.len(), 2);
+        assert_eq!(router.handlers.len(), 3);
     }
 }

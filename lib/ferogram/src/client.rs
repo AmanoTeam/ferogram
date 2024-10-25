@@ -78,7 +78,7 @@ impl Client {
     }
 
     /// Listen to Telegram's updates and send them to the dispatcher's routers.
-    pub async fn handle(self) -> Result<()> {
+    pub async fn run(self) -> Result<()> {
         let client = self.inner_client;
 
         let handle = client.clone();
