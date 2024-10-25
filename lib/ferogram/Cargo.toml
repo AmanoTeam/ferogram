@@ -18,5 +18,12 @@ macros = ["ferogram-macros"]
 ferogram-macros = { path = "../ferogram-macros", optional = true }
 grammers-client = { git = "https://github.com/Lonami/grammers" }
 
-tokio = { version = "1.40.0", features = ["fs", "rt"] }
-rpassword = "7.3.1"
+log = "*"
+tokio = { version = "1", features = ["fs", "rt", "signal"] }
+futures = { version = "*", default-features = false, features = ["alloc"] }
+rpassword = "7"
+async-trait = "*"
+async-recursion = "*"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["fs", "rt", "macros", "signal"] }

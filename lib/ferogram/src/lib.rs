@@ -9,9 +9,22 @@
 #![deny(unsafe_code)]
 
 pub mod client;
+mod dispatcher;
+mod endpoint;
+pub mod filter;
+pub(crate) mod filters;
+pub mod handler;
+mod router;
 pub mod utils;
 
-pub use grammers_client;
+pub use client::Client;
+pub use dispatcher::Dispatcher;
+pub(crate) use endpoint::Endpoint;
+pub(crate) use filter::Filter;
+pub(crate) use handler::Handler;
+pub use router::Router;
+
+pub use grammers_client as grammers;
 
 #[cfg(feature = "macros")]
 pub use ferogram_macros as macros;

@@ -6,41 +6,135 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, path::Path};
 
 use grammers_client::{session::Session, Config, InitParams, SignInError};
 
-use crate::{utils::prompt, Result};
+use crate::{utils::prompt, Dispatcher, Result};
 
+/// Wrapper about grammers' `Client` instance.
 #[derive(Clone)]
 pub struct Client {
-    pub inner_client: grammers_client::Client,
+    inner_client: grammers_client::Client,
+
+    dispatcher: Dispatcher,
+    is_connected: bool,
+    wait_for_ctrl_c: bool,
 }
 
 impl Client {
-    /// Create a new bot `Client` instance
-    pub fn bot(token: impl Into<String>) -> ClientBuilder {
+    /// Create a new bot `Client` instance.
+    pub fn bot<T: Into<String>>(token: T) -> ClientBuilder {
         ClientBuilder::bot(token)
     }
 
-    /// Create a new user `Client` instance
-    pub fn user(phone_number: impl Into<String>) -> ClientBuilder {
+    /// Create a new user `Client` instance.
+    pub fn user<N: Into<String>>(phone_number: N) -> ClientBuilder {
         ClientBuilder::user(phone_number)
+    }
+
+    /// Create a new `Client` instance from environment variables.
+    ///
+    /// It try to read the following env variables:
+    ///
+    /// * `BOT_TOKEN`: bot's token from @BotFather, or
+    /// * `PHONE_NUMBER`: user's phone number (international way)
+    /// * `API_ID`: developer's API ID from my.telegram.org
+    /// * `API_HASH`: developer's API HASH from my.telegram.org
+    pub fn from_env() -> ClientBuilder {
+        let token = std::env::var("BOT_TOKEN");
+        let phone_number = std::env::var("PHONE_NUMBER");
+
+        let mut builder = if token.is_ok() {
+            Self::bot(token.unwrap())
+        } else if phone_number.is_ok() {
+            Self::user(phone_number.unwrap())
+        } else {
+            panic!("You need to set BOT_TOKEN or PHONE_NUMBER env variable.");
+        };
+
+        match std::env::var("API_ID") {
+            Ok(api_id) => builder = builder.api_id(api_id.parse::<i32>().expect("API_ID invalid.")),
+            Err(_) => panic!("You need to set API_ID env variable."),
+        }
+
+        match std::env::var("API_HASH") {
+            Ok(api_hash) => builder = builder.api_hash(api_hash),
+            Err(_) => panic!("You need to set API_HASH env variable."),
+        }
+
+        builder
+    }
+
+    /// Configure the dispatcher.
+    pub fn dispatcher<D: FnOnce(Dispatcher) -> Dispatcher>(mut self, dispatcher: D) -> Self {
+        self.dispatcher = dispatcher(self.dispatcher);
+        self
+    }
+
+    /// Wheter the client is connected.
+    pub fn is_connected(&self) -> bool {
+        self.is_connected
+    }
+
+    /// Listen to Telegram's updates and send them to the dispatcher's routers.
+    pub async fn handle(self) -> Result<()> {
+        let client = self.inner_client;
+
+        let handle = client.clone();
+        tokio::task::spawn(async move {
+            loop {
+                let update = handle.next_update().await.unwrap();
+
+                match self.dispatcher.handle_update(handle.clone(), update).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        log::error!("Error handling update: {:?}", e);
+                    }
+                }
+            }
+        });
+
+        if self.wait_for_ctrl_c {
+            tokio::signal::ctrl_c().await?;
+        }
+
+        Ok(())
+    }
+
+    /// Keeps the connection open, but doesn't listen to the updates.
+    pub async fn keep_alive(self) -> Result<()> {
+        let client = self.inner_client;
+
+        tokio::task::spawn(async move {
+            loop {
+                client.step().await.unwrap();
+            }
+        });
+
+        if self.wait_for_ctrl_c {
+            tokio::signal::ctrl_c().await?;
+        }
+
+        Ok(())
     }
 }
 
+/// `Client` instance builder.
 pub struct ClientBuilder {
-    pub client_type: ClientType,
+    client_type: ClientType,
 
-    pub api_id: i32,
-    pub api_hash: String,
-    pub session_file: Option<String>,
-    pub init_params: InitParams,
+    api_id: i32,
+    api_hash: String,
+    session_file: Option<String>,
+    init_params: InitParams,
+
+    exit_on_ctrl_c: bool,
 }
 
 impl ClientBuilder {
     /// Create a new builder to bot `Client` instance.
-    pub fn bot(token: impl Into<String>) -> Self {
+    pub fn bot<T: Into<String>>(token: T) -> Self {
         Self {
             client_type: ClientType::Bot(token.into()),
 
@@ -48,11 +142,13 @@ impl ClientBuilder {
             api_hash: String::new(),
             session_file: None,
             init_params: InitParams::default(),
+
+            exit_on_ctrl_c: false,
         }
     }
 
     /// Create a new builder to user `Client` instance.
-    pub fn user(phone_number: impl Into<String>) -> Self {
+    pub fn user<N: Into<String>>(phone_number: N) -> Self {
         Self {
             client_type: ClientType::User(phone_number.into()),
 
@@ -60,10 +156,37 @@ impl ClientBuilder {
             api_hash: String::new(),
             session_file: None,
             init_params: InitParams::default(),
+
+            exit_on_ctrl_c: false,
         }
     }
 
+    /// Build the `Client` instance.
+    pub async fn build(self) -> Result<Client> {
+        let session_file = self
+            .session_file
+            .unwrap_or("./ferogram.session".to_string());
+
+        let client = grammers_client::Client::connect(Config {
+            session: Session::load_file_or_create(&session_file)?,
+            api_id: self.api_id,
+            api_hash: self.api_hash,
+            params: self.init_params,
+        })
+        .await?;
+
+        Ok(Client {
+            inner_client: client,
+
+            dispatcher: Dispatcher::default(),
+            is_connected: false,
+            wait_for_ctrl_c: self.exit_on_ctrl_c,
+        })
+    }
+
     /// Build and connect the `Client` instance.
+    ///
+    /// Connects to Telegram server, but don't listen to updates.
     pub async fn build_and_connect(self) -> Result<Client> {
         let session_file = self
             .session_file
@@ -113,6 +236,10 @@ impl ClientBuilder {
 
         Ok(Client {
             inner_client: client,
+
+            dispatcher: Dispatcher::default(),
+            is_connected: true,
+            wait_for_ctrl_c: self.exit_on_ctrl_c,
         })
     }
 
@@ -127,22 +254,22 @@ impl ClientBuilder {
     /// Developer's API hash, required to interact with Telegram's API.
     ///
     /// You may obtain your own in <https://my.telegram.org/auth>.
-    pub fn api_hash(mut self, api_hash: impl Into<String>) -> Self {
+    pub fn api_hash<H: Into<String>>(mut self, api_hash: H) -> Self {
         self.api_hash = api_hash.into();
         self
     }
 
     /// Session storage where data should persist, such as authorization key, server address,
     /// and other required information by the client.
-    pub fn session_file(mut self, path: impl Into<String>) -> Self {
-        self.session_file = Some(path.into());
+    pub fn session_file<P: AsRef<Path> + ToString>(mut self, path: P) -> Self {
+        self.session_file = Some(path.to_string());
         self
     }
 
     /// User's device model.
     ///
     /// Telegram uses to know your device in devices settings.
-    pub fn device_model(mut self, device_model: impl Into<String>) -> Self {
+    pub fn device_model<M: Into<String>>(mut self, device_model: M) -> Self {
         self.init_params.device_model = device_model.into();
         self
     }
@@ -150,7 +277,7 @@ impl ClientBuilder {
     /// User's system version.
     ///
     /// Telegram uses to know your system version in devices settings.
-    pub fn system_version(mut self, system_version: impl Into<String>) -> Self {
+    pub fn system_version<V: Into<String>>(mut self, system_version: V) -> Self {
         self.init_params.system_version = system_version.into();
         self
     }
@@ -158,7 +285,7 @@ impl ClientBuilder {
     /// Client's app version.
     ///
     /// Telegram uses to know your app version in device settings.
-    pub fn app_version(mut self, app_version: impl Into<String>) -> Self {
+    pub fn app_version<V: Into<String>>(mut self, app_version: V) -> Self {
         self.init_params.app_version = app_version.into();
         self
     }
@@ -166,7 +293,7 @@ impl ClientBuilder {
     /// Client's language code.
     ///
     /// Telegram uses internally to let others know your language.
-    pub fn lang_code(mut self, lang_code: impl Into<String>) -> Self {
+    pub fn lang_code<C: Into<String>>(mut self, lang_code: C) -> Self {
         self.init_params.lang_code = lang_code.into();
         self
     }
@@ -174,8 +301,8 @@ impl ClientBuilder {
     /// Should the client catch-up on updates sent to it while it was offline?
     ///
     /// By default, updates sent while the client was offline are ignored.
-    pub fn catch_up(mut self, catch_up: bool) -> Self {
-        self.init_params.catch_up = catch_up;
+    pub fn catch_up(mut self, value: bool) -> Self {
+        self.init_params.catch_up = value;
         self
     }
 
@@ -228,9 +355,47 @@ impl ClientBuilder {
         self.init_params.update_queue_limit = update_queue_limit;
         self
     }
+
+    /// Wait for `Ctrl + C` to exit the app.
+    ///
+    /// Otherwise the code will continue running until it finds the end.
+    pub fn wait_for_ctrl_c(mut self) -> Self {
+        self.exit_on_ctrl_c = true;
+        self
+    }
 }
 
+/// Client type.
 pub enum ClientType {
     Bot(String),
     User(String),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_client_bot() {
+        let client = Client::bot(std::env::var("BOT_TOKEN").unwrap())
+            .api_id(std::env::var("API_ID").unwrap().parse::<i32>().unwrap())
+            .api_hash(std::env::var("API_HASH").unwrap())
+            .build_and_connect()
+            .await
+            .unwrap();
+
+        assert_eq!(client.inner_client.is_authorized().await.unwrap(), true);
+    }
+
+    #[tokio::test]
+    async fn test_client_user() {
+        let client = Client::user(std::env::var("PHONE_NUMBER").unwrap())
+            .api_id(std::env::var("API_ID").unwrap().parse::<i32>().unwrap())
+            .api_hash(std::env::var("API_HASH").unwrap())
+            .build_and_connect()
+            .await
+            .unwrap();
+
+        assert_eq!(client.inner_client.is_authorized().await.unwrap(), true);
+    }
 }

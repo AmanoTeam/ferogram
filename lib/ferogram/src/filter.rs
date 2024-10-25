@@ -1,0 +1,78 @@
+// Copyright 2024 - Andriel Ferreira
+//
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// https://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
+// option. This file may not be copied, modified, or distributed
+// except according to those terms.
+
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use futures::Future;
+use grammers_client::{Client, Update};
+
+pub use crate::filters::*;
+
+/// Update filter.
+///
+/// Checked at each update to know if the update should be handled.
+#[async_trait]
+pub trait Filter: Send + Sync + 'static {
+    /// Check if the update should be handled.
+    async fn check(&self, client: Client, update: Update) -> bool;
+
+    /// Wrappers `self` and `second` into `And` filter.
+    fn and<S: Filter>(self, second: S) -> And
+    where
+        Self: Sized,
+    {
+        And {
+            first: Arc::new(self),
+            second: Arc::new(second),
+        }
+    }
+
+    /// Wrappers `self` and `other` into `Or` filter.
+    fn or<O: Filter>(self, other: O) -> Or
+    where
+        Self: Sized,
+    {
+        Or {
+            first: Arc::new(self),
+            other: Arc::new(other),
+        }
+    }
+
+    /// Wrappers `self` into `Not` filter.
+    fn not(self) -> Not
+    where
+        Self: Sized,
+    {
+        Not {
+            filter: Arc::new(self),
+        }
+    }
+}
+
+#[async_trait]
+impl<T: Clone, F> Filter for T
+where
+    T: Fn(Client, Update) -> F + Send + Sync + 'static,
+    F: Future<Output = bool> + Send + Sync + 'static,
+{
+    async fn check(&self, client: Client, update: Update) -> bool {
+        self(client, update).await
+    }
+}
+
+#[async_trait]
+impl<T: Clone, F> Filter for Arc<T>
+where
+    T: Fn(Client, Update) -> F + Send + Sync + 'static,
+    F: Future<Output = bool> + Send + Sync + 'static,
+{
+    async fn check(&self, client: Client, update: Update) -> bool {
+        self(client, update).await
+    }
+}
