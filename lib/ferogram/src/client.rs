@@ -15,10 +15,12 @@ use crate::{utils::prompt, Dispatcher, Result};
 /// Wrapper about grammers' `Client` instance.
 #[derive(Clone)]
 pub struct Client {
+    client_type: ClientType,
     inner_client: grammers_client::Client,
 
     dispatcher: Dispatcher,
     is_connected: bool,
+    session_file: Option<String>,
     wait_for_ctrl_c: bool,
 }
 
@@ -42,13 +44,10 @@ impl Client {
     /// * `API_ID`: developer's API ID from my.telegram.org
     /// * `API_HASH`: developer's API HASH from my.telegram.org
     pub fn from_env() -> ClientBuilder {
-        let token = std::env::var("BOT_TOKEN");
-        let phone_number = std::env::var("PHONE_NUMBER");
-
-        let mut builder = if token.is_ok() {
-            Self::bot(token.unwrap())
-        } else if phone_number.is_ok() {
-            Self::user(phone_number.unwrap())
+        let mut builder = if let Ok(token) = std::env::var("BOT_TOKEN") {
+            Self::bot(token)
+        } else if let Ok(phone_number) = std::env::var("PHONE_NUMBER") {
+            Self::user(phone_number)
         } else {
             panic!("You need to set BOT_TOKEN or PHONE_NUMBER env variable.");
         };
@@ -66,6 +65,53 @@ impl Client {
         builder
     }
 
+    /// Connects to the Telegram server, but don't listen to updates.
+    pub async fn connect(mut self) -> Result<Self> {
+        if self.is_connected {
+            return Err("Client is already connected.".into());
+        }
+
+        let session_file = &self.session_file.as_deref().unwrap_or("./ferogram.session");
+
+        let client = &self.inner_client;
+        if !client.is_authorized().await? {
+            match self.client_type {
+                ClientType::Bot(ref token) => match client.bot_sign_in(&token).await {
+                    Ok(_) => {
+                        client.session().save_to_file(session_file)?;
+                    }
+                    Err(e) => {
+                        panic!("Failed to sign in: {:?}", e);
+                    }
+                },
+                ClientType::User(ref phone_number) => {
+                    println!("You need to authorize your account. Requesting code...");
+                    let token = client.request_login_code(&phone_number).await?;
+                    let code = prompt("Enter the code you received: ", false)?;
+
+                    match client.sign_in(&token, &code).await {
+                        Ok(_) => {
+                            client.session().save_to_file(session_file)?;
+                        }
+                        Err(SignInError::PasswordRequired(token)) => {
+                            let hint = token.hint().unwrap();
+                            let password =
+                                prompt(format!("Enter the password (hint {}): ", hint), true)?;
+
+                            client.check_password(token, password.trim()).await?;
+                        }
+                        Err(e) => {
+                            panic!("Failed to sign in: {:?}", e);
+                        }
+                    }
+                }
+            };
+        }
+        self.is_connected = true;
+
+        Ok(self)
+    }
+
     /// Configure the dispatcher.
     pub fn dispatcher<D: FnOnce(Dispatcher) -> Dispatcher>(mut self, dispatcher: D) -> Self {
         self.dispatcher = dispatcher(self.dispatcher);
@@ -79,17 +125,27 @@ impl Client {
 
     /// Listen to Telegram's updates and send them to the dispatcher's routers.
     pub async fn run(self) -> Result<()> {
-        let client = self.inner_client;
+        let handle = self.inner_client;
+        let dispatcher = self.dispatcher;
 
-        let handle = client.clone();
         tokio::task::spawn(async move {
             loop {
-                let update = handle.next_update().await.unwrap();
+                match handle.next_update().await {
+                    Ok(update) => {
+                        let handle = handle.clone();
+                        let dispatcher = dispatcher.clone();
 
-                match self.dispatcher.handle_update(handle.clone(), update).await {
-                    Ok(_) => {}
+                        tokio::task::spawn(async move {
+                            match dispatcher.handle_update(handle, update).await {
+                                Ok(_) => {}
+                                Err(e) => {
+                                    log::error!("Error handling update: {:?}", e);
+                                }
+                            }
+                        });
+                    }
                     Err(e) => {
-                        log::error!("Error handling update: {:?}", e);
+                        log::error!("Error getting updates: {:?}", e);
                     }
                 }
             }
@@ -121,6 +177,7 @@ impl Client {
 }
 
 /// `Client` instance builder.
+#[derive(Default)]
 pub struct ClientBuilder {
     client_type: ClientType,
 
@@ -129,7 +186,7 @@ pub struct ClientBuilder {
     session_file: Option<String>,
     init_params: InitParams,
 
-    exit_on_ctrl_c: bool,
+    wait_for_ctrl_c: bool,
 }
 
 impl ClientBuilder {
@@ -138,12 +195,7 @@ impl ClientBuilder {
         Self {
             client_type: ClientType::Bot(token.into()),
 
-            api_id: 0,
-            api_hash: String::new(),
-            session_file: None,
-            init_params: InitParams::default(),
-
-            exit_on_ctrl_c: false,
+            ..Default::default()
         }
     }
 
@@ -152,23 +204,16 @@ impl ClientBuilder {
         Self {
             client_type: ClientType::User(phone_number.into()),
 
-            api_id: 0,
-            api_hash: String::new(),
-            session_file: None,
-            init_params: InitParams::default(),
-
-            exit_on_ctrl_c: false,
+            ..Default::default()
         }
     }
 
     /// Build the `Client` instance.
     pub async fn build(self) -> Result<Client> {
-        let session_file = self
-            .session_file
-            .unwrap_or("./ferogram.session".to_string());
+        let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
 
-        let client = grammers_client::Client::connect(Config {
-            session: Session::load_file_or_create(&session_file)?,
+        let inner_client = grammers_client::Client::connect(Config {
+            session: Session::load_file_or_create(session_file)?,
             api_id: self.api_id,
             api_hash: self.api_hash,
             params: self.init_params,
@@ -176,71 +221,41 @@ impl ClientBuilder {
         .await?;
 
         Ok(Client {
-            inner_client: client,
+            client_type: self.client_type,
+            inner_client,
 
             dispatcher: Dispatcher::default(),
             is_connected: false,
-            wait_for_ctrl_c: self.exit_on_ctrl_c,
+            session_file: Some(session_file.to_string()),
+            wait_for_ctrl_c: self.wait_for_ctrl_c,
         })
     }
 
     /// Build and connect the `Client` instance.
     ///
-    /// Connects to Telegram server, but don't listen to updates.
+    /// Connects to the Telegram server, but don't listen to updates.
     pub async fn build_and_connect(self) -> Result<Client> {
-        let session_file = self
-            .session_file
-            .unwrap_or("./ferogram.session".to_string());
+        let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
 
         let client = grammers_client::Client::connect(Config {
-            session: Session::load_file_or_create(&session_file)?,
+            session: Session::load_file_or_create(session_file)?,
             api_id: self.api_id,
             api_hash: self.api_hash,
             params: self.init_params,
         })
         .await?;
 
-        if !client.is_authorized().await? {
-            match self.client_type {
-                ClientType::Bot(token) => match client.bot_sign_in(&token).await {
-                    Ok(_) => {
-                        client.session().save_to_file(&session_file)?;
-                    }
-                    Err(e) => {
-                        panic!("Failed to sign in: {:?}", e);
-                    }
-                },
-                ClientType::User(phone_number) => {
-                    println!("You need to authorize your account. Requesting code...");
-                    let token = client.request_login_code(&phone_number).await?;
-                    let code = prompt("Enter the code you received: ", false)?;
-
-                    match client.sign_in(&token, &code).await {
-                        Ok(_) => {
-                            client.session().save_to_file(&session_file)?;
-                        }
-                        Err(SignInError::PasswordRequired(token)) => {
-                            let hint = token.hint().unwrap();
-                            let password =
-                                prompt(format!("Enter the password (hint {}): ", hint), true)?;
-
-                            client.check_password(token, password.trim()).await?;
-                        }
-                        Err(e) => {
-                            panic!("Failed to sign in: {:?}", e);
-                        }
-                    }
-                }
-            };
-        }
-
         Ok(Client {
+            client_type: self.client_type,
             inner_client: client,
 
             dispatcher: Dispatcher::default(),
-            is_connected: true,
-            wait_for_ctrl_c: self.exit_on_ctrl_c,
-        })
+            is_connected: false,
+            session_file: Some(session_file.to_string()),
+            wait_for_ctrl_c: self.wait_for_ctrl_c,
+        }
+        .connect()
+        .await?)
     }
 
     /// Developer's API ID, required to interact with the Telegram's API.
@@ -360,15 +375,24 @@ impl ClientBuilder {
     ///
     /// Otherwise the code will continue running until it finds the end.
     pub fn wait_for_ctrl_c(mut self) -> Self {
-        self.exit_on_ctrl_c = true;
+        self.wait_for_ctrl_c = true;
         self
     }
 }
 
 /// Client type.
+#[derive(Clone)]
 pub enum ClientType {
+    /// Bot client, holds bot token.
     Bot(String),
+    /// User client, holds user phone number.
     User(String),
+}
+
+impl Default for ClientType {
+    fn default() -> Self {
+        Self::Bot(String::new())
+    }
 }
 
 #[cfg(test)]
