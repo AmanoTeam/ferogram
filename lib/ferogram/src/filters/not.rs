@@ -11,7 +11,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use grammers_client::{Client, Update};
 
-use crate::Filter;
+use crate::{Filter, Flow};
 
 pub struct Not {
     pub(crate) filter: Arc<dyn Filter>,
@@ -19,7 +19,12 @@ pub struct Not {
 
 #[async_trait]
 impl Filter for Not {
-    async fn check(&self, client: Client, update: Update) -> bool {
-        !self.filter.check(client.clone(), update.clone()).await
+    async fn check(&self, client: Client, update: Update) -> Flow {
+        (!self
+            .filter
+            .check(client.clone(), update.clone())
+            .await
+            .is_continue())
+        .into()
     }
 }

@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use grammers_client::{Client, Update};
 
-use crate::{di, Filter};
+use crate::{di, flow, Filter, Flow};
 
 /// Handler.
 #[derive(Clone)]
@@ -96,7 +96,7 @@ impl Handler {
     }
 
     /// Check if the update should be handled.
-    pub(crate) async fn check(&self, client: &Client, update: &Update) -> bool {
+    pub(crate) async fn check(&self, client: &Client, update: &Update) -> Flow {
         if self.handler_type == HandlerType::NewMessage && matches!(update, Update::NewMessage(_))
             || self.handler_type == HandlerType::MessageEdited
                 && matches!(update, Update::MessageEdited(_))
@@ -113,7 +113,7 @@ impl Handler {
             }
         }
 
-        true
+        flow::continue_now()
     }
 }
 

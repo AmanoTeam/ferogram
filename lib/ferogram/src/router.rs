@@ -40,12 +40,16 @@ impl Router {
         update: &Update,
     ) -> Result<bool> {
         for handler in self.handlers.iter_mut() {
-            if handler.check(&client, &update).await {
+            let flow = handler.check(&client, &update).await;
+            if flow.is_continue() {
                 if let Some(endpoint) = handler.endpoint.as_mut() {
                     let mut injector = di::Injector::new();
 
                     injector.insert(client.clone());
                     injector.insert(update.clone());
+
+                    let mut flow_injector = flow.injector.lock().await;
+                    injector.extend(&mut flow_injector);
 
                     endpoint.handle(injector).await?;
                 }

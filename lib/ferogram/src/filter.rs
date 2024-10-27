@@ -13,6 +13,7 @@ use futures::Future;
 use grammers_client::{Client, Update};
 
 pub use crate::filters::*;
+use crate::{flow, Flow};
 
 /// Update filter.
 ///
@@ -20,7 +21,7 @@ pub use crate::filters::*;
 #[async_trait]
 pub trait Filter: Send + Sync + 'static {
     /// Check if the update should be handled.
-    async fn check(&self, client: Client, update: Update) -> bool;
+    async fn check(&self, client: Client, update: Update) -> Flow;
 
     /// Wrappers `self` and `second` into `And` filter.
     fn and<S: Filter>(self, second: S) -> And
@@ -56,29 +57,35 @@ pub trait Filter: Send + Sync + 'static {
 }
 
 #[async_trait]
-impl<T: Clone, F> Filter for T
+impl<T: Clone, F, O: Into<Flow>> Filter for T
 where
     T: Fn(Client, Update) -> F + Send + Sync + 'static,
-    F: Future<Output = bool> + Send + Sync + 'static,
+    F: Future<Output = O> + Send + Sync + 'static,
 {
-    async fn check(&self, client: Client, update: Update) -> bool
+    async fn check(&self, client: Client, update: Update) -> Flow
     where
         Self: Sized,
     {
-        self(client, update).await
+        match self(client, update).await.try_into() {
+            Ok(flow) => flow,
+            Err(_) => flow::break_now(),
+        }
     }
 }
 
 #[async_trait]
-impl<T: Clone, F> Filter for Arc<T>
+impl<T: Clone, F, O: Into<Flow>> Filter for Arc<T>
 where
     T: Fn(Client, Update) -> F + Send + Sync + 'static,
-    F: Future<Output = bool> + Send + Sync + 'static,
+    F: Future<Output = O> + Send + Sync + 'static,
 {
-    async fn check(&self, client: Client, update: Update) -> bool
+    async fn check(&self, client: Client, update: Update) -> Flow
     where
         Self: Sized,
     {
-        self(client, update).await
+        match self(client, update).await.try_into() {
+            Ok(flow) => flow,
+            Err(_) => flow::break_now(),
+        }
     }
 }

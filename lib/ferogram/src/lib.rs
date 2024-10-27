@@ -13,6 +13,7 @@ pub(crate) mod di;
 mod dispatcher;
 pub mod filter;
 pub(crate) mod filters;
+pub mod flow;
 pub mod handler;
 mod router;
 pub mod utils;
@@ -20,6 +21,8 @@ pub mod utils;
 pub use client::Client;
 pub use dispatcher::Dispatcher;
 pub(crate) use filter::Filter;
+pub use flow::Action;
+pub(crate) use flow::Flow;
 pub(crate) use handler::Handler;
 pub use router::Router;
 

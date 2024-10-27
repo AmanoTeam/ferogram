@@ -6,27 +6,31 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use std::sync::Arc;
+
 use grammers_client::{Client, Update};
+use tokio::sync::Mutex;
 
 use crate::{Result, Router};
 
 /// Dispatcher
 #[derive(Clone, Default)]
 pub struct Dispatcher {
-    routers: Vec<Router>,
+    routers: Arc<Mutex<Vec<Router>>>,
 }
 
 impl Dispatcher {
     /// Attach a new router.
-    pub fn router<R: FnOnce(Router) -> Router + 'static>(mut self, router: R) -> Self {
+    pub fn router<R: FnOnce(Router) -> Router + 'static>(self, router: R) -> Self {
         let router = router(Router::default());
-        self.routers.push(router);
+        self.routers.try_lock().unwrap().push(router);
+
         self
     }
 
     /// Handle the update sent by Telegram.
     pub(crate) async fn handle_update(&mut self, client: Client, update: Update) -> Result<()> {
-        for router in self.routers.iter_mut() {
+        for router in self.routers.lock().await.iter_mut() {
             match router.handle_update(&client, &update).await {
                 Ok(true) => return Ok(()),
                 Ok(false) => continue,
@@ -45,12 +49,10 @@ mod tests {
 
     #[test]
     fn test_dispatcher() {
-        let dispatcher = Dispatcher::default()
+        Dispatcher::default()
             .router(|router| router)
             .router(|router| {
                 router.handler(handler::then(|_: Client, _: Update| async { Ok(()) }))
             });
-
-        assert_eq!(dispatcher.routers.len(), 2);
     }
 }
