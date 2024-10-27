@@ -25,9 +25,9 @@ impl Dispatcher {
     }
 
     /// Handle the update sent by Telegram.
-    pub(crate) async fn handle_update(&self, client: Client, update: Update) -> Result<()> {
-        for router in self.routers.iter() {
-            match router.handle_update(client.clone(), update.clone()).await {
+    pub(crate) async fn handle_update(&mut self, client: Client, update: Update) -> Result<()> {
+        for router in self.routers.iter_mut() {
+            match router.handle_update(&client, &update).await {
                 Ok(true) => return Ok(()),
                 Ok(false) => continue,
                 Err(e) => return Err(format!("Error handling update on router: {:?}", e).into()),
@@ -47,7 +47,9 @@ mod tests {
     fn test_dispatcher() {
         let dispatcher = Dispatcher::default()
             .router(|router| router)
-            .router(|router| router.handler(handler::then(|_, _| async { Ok(()) })));
+            .router(|router| {
+                router.handler(handler::then(|_: Client, _: Update| async { Ok(()) }))
+            });
 
         assert_eq!(dispatcher.routers.len(), 2);
     }

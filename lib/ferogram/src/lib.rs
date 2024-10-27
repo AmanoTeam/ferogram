@@ -9,8 +9,8 @@
 #![deny(unsafe_code)]
 
 pub mod client;
+pub(crate) mod di;
 mod dispatcher;
-mod endpoint;
 pub mod filter;
 pub(crate) mod filters;
 pub mod handler;
@@ -19,7 +19,6 @@ pub mod utils;
 
 pub use client::Client;
 pub use dispatcher::Dispatcher;
-pub(crate) use endpoint::Endpoint;
 pub(crate) use filter::Filter;
 pub(crate) use handler::Handler;
 pub use router::Router;

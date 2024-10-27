@@ -13,7 +13,6 @@ use grammers_client::{session::Session, Config, InitParams, SignInError};
 use crate::{utils::prompt, Dispatcher, Result};
 
 /// Wrapper about grammers' `Client` instance.
-#[derive(Clone)]
 pub struct Client {
     client_type: ClientType,
     inner_client: grammers_client::Client,
@@ -133,7 +132,7 @@ impl Client {
                 match handle.next_update().await {
                     Ok(update) => {
                         let handle = handle.clone();
-                        let dispatcher = dispatcher.clone();
+                        let mut dispatcher = dispatcher.clone();
 
                         tokio::task::spawn(async move {
                             match dispatcher.handle_update(handle, update).await {

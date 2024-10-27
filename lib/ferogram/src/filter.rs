@@ -61,7 +61,10 @@ where
     T: Fn(Client, Update) -> F + Send + Sync + 'static,
     F: Future<Output = bool> + Send + Sync + 'static,
 {
-    async fn check(&self, client: Client, update: Update) -> bool {
+    async fn check(&self, client: Client, update: Update) -> bool
+    where
+        Self: Sized,
+    {
         self(client, update).await
     }
 }
@@ -72,7 +75,10 @@ where
     T: Fn(Client, Update) -> F + Send + Sync + 'static,
     F: Future<Output = bool> + Send + Sync + 'static,
 {
-    async fn check(&self, client: Client, update: Update) -> bool {
+    async fn check(&self, client: Client, update: Update) -> bool
+    where
+        Self: Sized,
+    {
         self(client, update).await
     }
 }

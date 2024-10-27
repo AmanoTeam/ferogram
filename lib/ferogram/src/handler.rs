@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use grammers_client::{Client, Update};
 
-use crate::{Endpoint, Filter};
+use crate::{di, Filter};
 
 /// Handler.
 #[derive(Clone)]
@@ -18,7 +18,7 @@ pub struct Handler {
     handler_type: HandlerType,
 
     filter: Option<Arc<dyn Filter>>,
-    pub(crate) endpoint: Option<Arc<dyn Endpoint>>,
+    pub(crate) endpoint: Option<di::Endpoint>,
 }
 
 impl Handler {
@@ -82,8 +82,11 @@ impl Handler {
     }
 
     /// Set the handler endpoint.
-    pub fn then<E: Endpoint>(mut self, endpoint: E) -> Self {
-        self.endpoint = Some(Arc::new(endpoint));
+    pub fn then<I, H: di::Handler>(
+        mut self,
+        endpoint: impl di::IntoHandler<I, Handler = H>,
+    ) -> Self {
+        self.endpoint = Some(Box::new(endpoint.into_handler()));
         self
     }
 
@@ -114,7 +117,7 @@ impl Handler {
     }
 }
 
-/// Handle type.
+/// Handler type.
 #[derive(Clone, Default, PartialEq)]
 pub enum HandlerType {
     NewMessage,
@@ -157,11 +160,11 @@ pub fn inline_query<F: Filter>(filter: F) -> Handler {
 }
 
 /// Create a new `Raw` handler.
-pub fn then<E: Endpoint>(endpoint: E) -> Handler {
+pub fn then<I, H: di::Handler>(endpoint: impl di::IntoHandler<I, Handler = H>) -> Handler {
     Handler {
         handler_type: HandlerType::Raw,
 
         filter: None,
-        endpoint: Some(Arc::new(endpoint)),
+        endpoint: Some(Box::new(endpoint.into_handler())),
     }
 }

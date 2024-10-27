@@ -7,8 +7,9 @@
 // except according to those terms.
 
 use async_recursion::async_recursion;
+use grammers_client::Update;
 
-use crate::{Handler, Result};
+use crate::{di, Handler, Result};
 
 /// Dispatcher's router
 #[derive(Clone, Default)]
@@ -24,11 +25,6 @@ impl Router {
         self
     }
 
-    /// Iterate over router's handlers.
-    pub fn iter_handlers(&self) -> impl Iterator<Item = &Handler> {
-        self.handlers.iter()
-    }
-
     /// Attach a new router.
     pub fn router<R: FnOnce(Router) -> Router + 'static>(mut self, router: R) -> Self {
         let router = router(Self::default());
@@ -36,30 +32,30 @@ impl Router {
         self
     }
 
-    /// Iterate over router's routers.
-    pub fn iter_routers(&self) -> impl Iterator<Item = &Router> {
-        self.routers.iter()
-    }
-
     /// Handle the update sent by Telegram.
     #[async_recursion]
     pub(crate) async fn handle_update(
-        &self,
-        client: grammers_client::Client,
-        update: grammers_client::Update,
+        &mut self,
+        client: &grammers_client::Client,
+        update: &Update,
     ) -> Result<bool> {
-        for handler in self.iter_handlers() {
+        for handler in self.handlers.iter_mut() {
             if handler.check(&client, &update).await {
-                if let Some(endpoint) = handler.endpoint.as_ref() {
-                    endpoint.handle(client.clone(), update.clone()).await?;
+                if let Some(endpoint) = handler.endpoint.as_mut() {
+                    let mut injector = di::Injector::new();
+
+                    injector.insert(client.clone());
+                    injector.insert(update.clone());
+
+                    endpoint.handle(injector).await?;
                 }
 
                 return Ok(true);
             }
         }
 
-        for router in self.iter_routers() {
-            match router.handle_update(client.clone(), update.clone()).await {
+        for router in self.routers.iter_mut() {
+            match router.handle_update(client, update).await {
                 Ok(true) => return Ok(true),
                 Ok(false) => continue,
                 Err(e) => return Err(format!("Error handling update: {:?}", e).into()),
@@ -78,10 +74,10 @@ mod tests {
     #[test]
     fn router() {
         let filter = |_, _| async { true };
-        let endpoint = |_, _| async { Ok(()) };
+        let endpoint = || async { Ok(()) };
 
         let router = Router::default()
-            .handler(handler::then(|_, _| async { Ok(()) }))
+            .handler(handler::then(|| async { Ok(()) }))
             .handler(handler::new_message(|_, _| async { true }))
             .handler(handler::new_update(filter).then(endpoint));
 
