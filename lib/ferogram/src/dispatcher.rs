@@ -47,7 +47,7 @@ impl Dispatcher {
             {
                 Ok(None) => return Ok(()),
                 Ok(injector) => main_injector = injector,
-                Err(e) => return Err(format!("Error handling update: {:?}", e).into()),
+                Err(e) => return Err(e),
             }
         }
 

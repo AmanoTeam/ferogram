@@ -80,7 +80,7 @@ impl Injector {
 #[async_trait]
 /// Handler trait.
 pub trait Handler: CloneHandler + Send + Sync + 'static {
-    async fn handle(&mut self, mut injector: Injector) -> Result<()>;
+    async fn handle(&mut self, injector: &mut Injector) -> Result<()>;
 }
 
 macro_rules! impl_handler {
@@ -97,9 +97,12 @@ macro_rules! impl_handler {
             #[allow(unused_mut)]
             #[allow(non_snake_case)]
             #[allow(unused_variables)]
-            async fn handle(&mut self, mut injector: Injector) -> Result<()> {
+            async fn handle(&mut self, injector: &mut Injector) -> Result<()> {
                 $(
-                    let $params = injector.take::<$params>().expect("Missing resource.");
+                    let $params = match injector.take::<$params>() {
+                        Some(value) => value,
+                        None => return Err(format!("Missing dependency: {:?}", stringify!($params)).into()),
+                    };
                 )*
 
                 (self.f)($($params),*).await

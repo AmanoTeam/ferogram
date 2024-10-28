@@ -18,6 +18,7 @@ pub struct Handler {
     handler_type: HandlerType,
 
     filter: Option<Arc<dyn Filter>>,
+    pub(crate) err_filter: Option<Arc<dyn Filter>>,
     pub(crate) endpoint: Option<di::Endpoint>,
 }
 
@@ -28,6 +29,7 @@ impl Handler {
             handler_type: HandlerType::NewMessage,
 
             filter: Some(Arc::new(filter)),
+            err_filter: None,
             endpoint: None,
         }
     }
@@ -36,7 +38,9 @@ impl Handler {
     pub fn new_update<F: Filter>(filter: F) -> Self {
         Self {
             handler_type: HandlerType::Raw,
+
             filter: Some(Arc::new(filter)),
+            err_filter: None,
             endpoint: None,
         }
     }
@@ -47,6 +51,7 @@ impl Handler {
             handler_type: HandlerType::MessageEdited,
 
             filter: Some(Arc::new(filter)),
+            err_filter: None,
             endpoint: None,
         }
     }
@@ -57,6 +62,7 @@ impl Handler {
             handler_type: HandlerType::MessageDeleted,
 
             filter: Some(Arc::new(filter)),
+            err_filter: None,
             endpoint: None,
         }
     }
@@ -67,6 +73,7 @@ impl Handler {
             handler_type: HandlerType::CallbackQuery,
 
             filter: Some(Arc::new(filter)),
+            err_filter: None,
             endpoint: None,
         }
     }
@@ -77,11 +84,12 @@ impl Handler {
             handler_type: HandlerType::InlineQuery,
 
             filter: Some(Arc::new(filter)),
+            err_filter: None,
             endpoint: None,
         }
     }
 
-    /// Set the handler endpoint.
+    /// Set the endpoint.
     pub fn then<I, H: di::Handler>(
         mut self,
         endpoint: impl di::IntoHandler<I, Handler = H>,
@@ -90,9 +98,15 @@ impl Handler {
         self
     }
 
-    /// Get the handler type.
-    pub fn handler_type(&self) -> HandlerType {
-        self.handler_type.clone()
+    /// Set the error filter.
+    ///
+    /// Executed when the `endpoint` returns an error.
+    ///
+    /// It can be used to try to run the `endpoint` again,
+    /// with other filters or injection ways.
+    pub fn on_error<F: Filter>(mut self, filter: F) -> Self {
+        self.err_filter = Some(Arc::new(filter));
+        self
     }
 
     /// Check if the update should be handled.
@@ -165,6 +179,7 @@ pub fn then<I, H: di::Handler>(endpoint: impl di::IntoHandler<I, Handler = H>) -
         handler_type: HandlerType::Raw,
 
         filter: None,
+        err_filter: None,
         endpoint: Some(Box::new(endpoint.into_handler())),
     }
 }

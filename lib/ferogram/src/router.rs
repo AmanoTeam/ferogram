@@ -54,8 +54,23 @@ impl Router {
                 injector.extend(&mut flow_injector);
 
                 if let Some(endpoint) = handler.endpoint.as_mut() {
-                    endpoint.handle(injector).await?;
-                    return Ok(None);
+                    match endpoint.handle(&mut injector).await {
+                        Ok(()) => return Ok(None),
+                        Err(e) => {
+                            if let Some(err_filter) = handler.err_filter.as_ref() {
+                                let flow = err_filter.check(client.clone(), update.clone()).await;
+
+                                if flow.is_continue() {
+                                    let mut flow_injector = flow.injector.lock().await;
+                                    injector.extend(&mut flow_injector);
+
+                                    return endpoint.handle(&mut injector).await.map(|_| None);
+                                }
+                            }
+
+                            return Err(e);
+                        }
+                    }
                 }
             }
 
@@ -66,7 +81,7 @@ impl Router {
             match router.handle_update(client, update, main_injector).await {
                 r @ Ok(None) => return r,
                 Ok(Some(injector)) => main_injector = injector,
-                Err(e) => return Err(format!("Error handling update: {:?}", e).into()),
+                Err(e) => return Err(e),
             }
         }
 
