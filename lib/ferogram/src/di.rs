@@ -26,7 +26,7 @@ pub type Endpoint = Box<dyn Handler>;
 ///
 /// Used to inject dependencies into handlers.
 pub struct Injector {
-    resources: HashMap<TypeId, Vec<Box<dyn Any + Send>>>,
+    resources: HashMap<TypeId, Vec<Box<dyn Any + Send + Sync>>>,
 }
 
 impl Injector {
@@ -37,8 +37,13 @@ impl Injector {
         }
     }
 
+    /// Count of resources stored.
+    pub fn len(&self) -> usize {
+        self.resources.len()
+    }
+
     /// Insert a new resource.
-    pub fn insert<R: Send + 'static>(&mut self, value: R) {
+    pub fn insert<R: Send + Sync + 'static>(&mut self, value: R) {
         self.resources
             .entry(TypeId::of::<R>())
             .or_insert_with(Vec::new)
@@ -56,7 +61,7 @@ impl Injector {
     }
 
     /// Remove a resource.
-    pub fn take<R: Send + 'static>(&mut self) -> Option<R> {
+    pub fn take<R: Send + Sync + 'static>(&mut self) -> Option<R> {
         match self.resources.entry(TypeId::of::<R>()) {
             Entry::Occupied(mut e) => e.get_mut().pop().unwrap().downcast().ok().map(|r| *r),
             Entry::Vacant(_) => None,
@@ -64,7 +69,7 @@ impl Injector {
     }
 
     /// Get a resource.
-    pub fn get<R: Send + 'static>(&self) -> Option<&R> {
+    pub fn get<R: Send + Sync + 'static>(&self) -> Option<&R> {
         self.resources
             .get(&TypeId::of::<R>())
             .and_then(|v| v.first())
@@ -85,7 +90,7 @@ macro_rules! impl_handler {
         where
             Fut: FnMut($($params),*) -> Output + Clone + Send + Sync + 'static,
             Output: Future<Output = Result<()>> + Send + Sync + 'static,
-            $($params: Clone + Send + 'static,)*
+            $($params: Clone + Send + Sync + 'static,)*
             Self: Sized,
         {
             #[inline]
@@ -141,7 +146,7 @@ macro_rules! impl_into_handler {
         where
             Fut: FnMut($($params),*) -> Output + Clone + Send + Sync + 'static,
             Output: Future<Output = Result<()>> + Send + Sync + 'static,
-            $($params: Clone + Send + 'static ,)*
+            $($params: Clone + Send + Sync + 'static ,)*
             Self: Sized,
         {
             type Handler = HandlerFunc<($($params,)*), Self>;

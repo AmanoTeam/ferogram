@@ -17,7 +17,7 @@ use grammers_client::{grammers_tl_types as tl, types::Media, Client, Update};
 pub(crate) use not::Not;
 pub(crate) use or::Or;
 
-use crate::Filter;
+use crate::{flow, Filter, Flow};
 
 /// Always pass.
 pub async fn always(_: Client, _: Update) -> bool {
@@ -52,7 +52,7 @@ pub fn not<F: Filter>(filter: F) -> impl Filter {
     }
 }
 
-/// Pass if the message contains text.
+/// Pass if the message contains the specified text.
 pub fn text(pat: &'static str) -> impl Filter {
     Arc::new(move |_client, update| async move {
         match update {
@@ -65,106 +65,152 @@ pub fn text(pat: &'static str) -> impl Filter {
 }
 
 /// Pass if the message has a poll.
-pub async fn poll(_: Client, update: Update) -> bool {
+///
+/// Injects `Poll`: message's poll.
+pub async fn poll(_: Client, update: Update) -> Flow {
     match update {
         Update::NewMessage(message) | Update::MessageEdited(message) => {
-            matches!(message.media(), Some(Media::Poll(_)))
+            if let Some(Media::Poll(poll)) = message.media() {
+                return flow::continue_with(poll);
+            }
+
+            flow::break_now()
         }
-        _ => false,
+        _ => flow::break_now(),
     }
 }
 
 /// Pass if the message has an audio.
-pub async fn audio(_: Client, update: Update) -> bool {
+///
+/// Injects `Document`: message's audio.
+pub async fn audio(_: Client, update: Update) -> Flow {
     match update {
         Update::NewMessage(message) | Update::MessageEdited(message) => {
             if let Some(media) = message.media() {
                 if let Media::Document(document) = media {
-                    return document.audio_title().is_some()
+                    if document.audio_title().is_some()
                         || document.performer().is_some()
                         || document
                             .mime_type()
-                            .map_or(false, |mime| mime.starts_with("audio/"));
+                            .map_or(false, |mime| mime.starts_with("audio/"))
+                    {
+                        return flow::continue_with(document);
+                    }
                 }
             }
 
-            false
+            flow::break_now()
         }
-        _ => false,
+        _ => flow::break_now(),
     }
 }
 
 /// Pass if the message has a photo.
-pub async fn photo(_: Client, update: Update) -> bool {
+///
+/// Injects `Photo`: message's photo.
+pub async fn photo(_: Client, update: Update) -> Flow {
     match update {
         Update::NewMessage(message) | Update::MessageEdited(message) => {
-            message.photo().is_some() || matches!(message.media(), Some(Media::Photo(_)))
+            if let Some(photo) = message.photo() {
+                return flow::continue_with(photo);
+            } else if let Some(Media::Photo(photo)) = message.media() {
+                return flow::continue_with(photo);
+            }
+
+            flow::break_now()
         }
-        _ => false,
+        _ => flow::break_now(),
     }
 }
 
 /// Pass if the message has a video.
-pub async fn video(_: Client, update: Update) -> bool {
+///
+/// Injects `Document`: message's video.
+pub async fn video(_: Client, update: Update) -> Flow {
     match update {
         Update::NewMessage(message) | Update::MessageEdited(message) => {
             if let Some(media) = message.media() {
                 if let Media::Document(document) = media {
-                    return document
+                    if document
                         .mime_type()
-                        .map_or(false, |mime| mime.starts_with("video/"));
+                        .map_or(false, |mime| mime.starts_with("video/"))
+                    {
+                        return flow::continue_with(document);
+                    }
                 }
             }
 
-            false
+            flow::break_now()
         }
-        _ => false,
+        _ => flow::break_now(),
     }
 }
 
 /// Pass if the message has a document.
-pub async fn document(_: Client, update: Update) -> bool {
+///
+/// Injects `Document`: message's document.
+pub async fn document(_: Client, update: Update) -> Flow {
     match update {
         Update::NewMessage(message) | Update::MessageEdited(message) => {
-            matches!(message.media(), Some(Media::Document(_)))
+            if let Some(Media::Document(document)) = message.media() {
+                return flow::continue_with(document);
+            }
+
+            flow::break_now()
         }
-        _ => false,
+        _ => flow::break_now(),
     }
 }
 
 /// Pass if the message has a sticker.
-pub async fn sticker(_: Client, update: Update) -> bool {
+///
+/// Injects `Sticker`: message's sticker.
+pub async fn sticker(_: Client, update: Update) -> Flow {
     match update {
         Update::NewMessage(message) | Update::MessageEdited(message) => {
-            matches!(message.media(), Some(Media::Sticker(_)))
+            if let Some(Media::Sticker(sticker)) = message.media() {
+                return flow::continue_with(sticker);
+            }
+
+            flow::break_now()
         }
-        _ => false,
+        _ => flow::break_now(),
     }
 }
 
 /// Pass if the message has an animated sticker.
-pub async fn animated_sticker(_: Client, update: Update) -> bool {
+///
+/// Injects `Document`: message's animated sticker.
+pub async fn animated_sticker(_: Client, update: Update) -> Flow {
     match update {
         Update::NewMessage(message) | Update::MessageEdited(message) => {
             if let Some(media) = message.media() {
                 if let Media::Document(document) = media {
-                    return document.is_animated();
+                    if document.is_animated() {
+                        return flow::continue_with(document);
+                    }
                 }
             }
 
-            false
+            flow::break_now()
         }
-        _ => false,
+        _ => flow::break_now(),
     }
 }
 
 /// Pass if the messaage has a dice.
-pub async fn dice(_: Client, update: Update) -> bool {
+///
+/// Injects `Dice`: message's dice.
+pub async fn dice(_: Client, update: Update) -> Flow {
     match update {
         Update::NewMessage(message) | Update::MessageEdited(message) => {
-            matches!(message.media(), Some(Media::Dice(_)))
+            if let Some(Media::Dice(dice)) = message.media() {
+                return flow::continue_with(dice);
+            }
+
+            flow::break_now()
         }
-        _ => false,
+        _ => flow::break_now(),
     }
 }
 

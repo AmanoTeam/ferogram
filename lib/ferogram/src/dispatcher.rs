@@ -11,7 +11,7 @@ use std::sync::Arc;
 use grammers_client::{Client, Update};
 use tokio::sync::Mutex;
 
-use crate::{Result, Router};
+use crate::{di, Result, Router};
 
 /// Dispatcher
 #[derive(Clone, Default)]
@@ -30,11 +30,24 @@ impl Dispatcher {
 
     /// Handle the update sent by Telegram.
     pub(crate) async fn handle_update(&mut self, client: Client, update: Update) -> Result<()> {
+        let mut main_injector = None;
+
         for router in self.routers.lock().await.iter_mut() {
-            match router.handle_update(&client, &update).await {
-                Ok(true) => return Ok(()),
-                Ok(false) => continue,
-                Err(e) => return Err(format!("Error handling update on router: {:?}", e).into()),
+            if main_injector.is_none() {
+                let mut injector = di::Injector::new();
+                injector.insert(client.clone());
+                injector.insert(update.clone());
+
+                main_injector = Some(injector);
+            }
+
+            match router
+                .handle_update(&client, &update, main_injector.unwrap())
+                .await
+            {
+                Ok(None) => return Ok(()),
+                Ok(injector) => main_injector = injector,
+                Err(e) => return Err(format!("Error handling update: {:?}", e).into()),
             }
         }
 

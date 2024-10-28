@@ -9,7 +9,10 @@
 use async_recursion::async_recursion;
 use grammers_client::Update;
 
-use crate::{di, Handler, Result};
+use crate::{
+    di::{self, Injector},
+    Handler, Result,
+};
 
 /// Dispatcher's router
 #[derive(Clone, Default)]
@@ -38,35 +41,36 @@ impl Router {
         &mut self,
         client: &grammers_client::Client,
         update: &Update,
-    ) -> Result<bool> {
+        mut main_injector: Injector,
+    ) -> Result<Option<Injector>> {
         for handler in self.handlers.iter_mut() {
             let flow = handler.check(&client, &update).await;
+            let mut injector = di::Injector::new();
+
+            injector.extend(&mut main_injector);
+
             if flow.is_continue() {
+                let mut flow_injector = flow.injector.lock().await;
+                injector.extend(&mut flow_injector);
+
                 if let Some(endpoint) = handler.endpoint.as_mut() {
-                    let mut injector = di::Injector::new();
-
-                    injector.insert(client.clone());
-                    injector.insert(update.clone());
-
-                    let mut flow_injector = flow.injector.lock().await;
-                    injector.extend(&mut flow_injector);
-
                     endpoint.handle(injector).await?;
+                    return Ok(None);
                 }
-
-                return Ok(true);
             }
+
+            main_injector = injector;
         }
 
         for router in self.routers.iter_mut() {
-            match router.handle_update(client, update).await {
-                Ok(true) => return Ok(true),
-                Ok(false) => continue,
+            match router.handle_update(client, update, main_injector).await {
+                r @ Ok(None) => return r,
+                Ok(Some(injector)) => main_injector = injector,
                 Err(e) => return Err(format!("Error handling update: {:?}", e).into()),
             }
         }
 
-        Ok(false)
+        Ok(None)
     }
 }
 

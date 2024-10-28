@@ -30,7 +30,7 @@ impl Flow {
     }
 
     /// Inject a value.
-    pub fn inject<R: Send + 'static>(&mut self, value: R) {
+    pub fn inject<R: Send + Sync + 'static>(&mut self, value: R) {
         self.injector.try_lock().unwrap().insert(value);
     }
 
@@ -64,7 +64,7 @@ impl From<bool> for Flow {
     }
 }
 
-impl<T: Send + 'static> From<Option<T>> for Flow {
+impl<T: Send + Sync + 'static> From<Option<T>> for Flow {
     fn from(value: Option<T>) -> Self {
         match value {
             Some(value) => {
@@ -78,7 +78,7 @@ impl<T: Send + 'static> From<Option<T>> for Flow {
     }
 }
 
-impl<T: Send + 'static> From<Result<T>> for Flow {
+impl<T: Send + Sync + 'static> From<Result<T>> for Flow {
     fn from(value: Result<T>) -> Self {
         match value {
             Ok(value) => {
@@ -117,7 +117,7 @@ pub fn continue_now() -> Flow {
 }
 
 /// Create a new flow with action `Continue` and inject a value.
-pub fn continue_with<R: Send + 'static>(value: R) -> Flow {
+pub fn continue_with<R: Send + Sync + 'static>(value: R) -> Flow {
     let mut flow = continue_now();
     flow.inject(value);
 
