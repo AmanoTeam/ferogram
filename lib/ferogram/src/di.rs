@@ -72,7 +72,7 @@ impl Injector {
     pub fn get<R: Send + Sync + 'static>(&self) -> Option<&R> {
         self.resources
             .get(&TypeId::of::<R>())
-            .and_then(|v| v.first())
+            .and_then(|v| v.last())
             .and_then(|v| v.downcast_ref::<R>())
     }
 }

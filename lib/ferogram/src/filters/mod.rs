@@ -240,5 +240,17 @@ pub async fn typing(_: Client, update: Update) -> bool {
             tl::enums::Update::UserTyping(_) | tl::enums::Update::ChatUserTyping(_)
         );
     }
+
     false
+}
+
+/// Pass if the message is forwarded.
+pub async fn forwarded(_: Client, update: Update) -> Flow {
+    if let Update::NewMessage(message) = update {
+        if message.forward_header().is_some() || message.forward_count().is_some() {
+            return flow::continue_now();
+        }
+    }
+
+    flow::break_now()
 }
