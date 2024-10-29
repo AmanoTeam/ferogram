@@ -10,17 +10,20 @@ use std::{net::SocketAddr, path::Path, sync::Arc};
 
 use grammers_client::{session::Session, Config, InitParams, SignInError};
 
-use crate::{utils::prompt, Dispatcher, Result};
+use crate::{utils::prompt, Dispatcher, ErrorHandler, Result};
 
 /// Wrapper about grammers' `Client` instance.
 pub struct Client {
+    dispatcher: Dispatcher,
     client_type: ClientType,
     inner_client: grammers_client::Client,
 
-    dispatcher: Dispatcher,
-    is_connected: bool,
     session_file: Option<String>,
+
+    is_connected: bool,
     wait_for_ctrl_c: bool,
+
+    pub(crate) err_handler: Option<Box<dyn ErrorHandler>>,
 }
 
 impl Client {
@@ -126,6 +129,7 @@ impl Client {
     pub async fn run(self) -> Result<()> {
         let handle = self.inner_client;
         let dispatcher = Arc::new(self.dispatcher);
+        let err_handler = self.err_handler;
 
         tokio::task::spawn(async move {
             loop {
@@ -133,12 +137,17 @@ impl Client {
                     Ok(update) => {
                         let client = handle.clone();
                         let dispatcher = Arc::clone(&dispatcher);
+                        let err_handler = err_handler.clone();
 
                         tokio::task::spawn(async move {
-                            match dispatcher.handle_update(client, update).await {
+                            match dispatcher.handle_update(&client, &update).await {
                                 Ok(_) => {}
                                 Err(e) => {
-                                    log::error!("Error handling update: {:?}", e);
+                                    if let Some(err_handler) = err_handler.as_ref() {
+                                        err_handler.run(client, update, e).await;
+                                    } else {
+                                        log::error!("Error handling update: {:?}", e);
+                                    }
                                 }
                             }
                         });
@@ -186,6 +195,8 @@ pub struct ClientBuilder {
     init_params: InitParams,
 
     wait_for_ctrl_c: bool,
+
+    pub(crate) err_handler: Option<Box<dyn ErrorHandler>>,
 }
 
 impl ClientBuilder {
@@ -220,13 +231,16 @@ impl ClientBuilder {
         .await?;
 
         Ok(Client {
+            dispatcher: Dispatcher::default(),
             client_type: self.client_type,
             inner_client,
 
-            dispatcher: Dispatcher::default(),
-            is_connected: false,
             session_file: Some(session_file.to_string()),
+
+            is_connected: false,
             wait_for_ctrl_c: self.wait_for_ctrl_c,
+
+            err_handler: self.err_handler,
         })
     }
 
@@ -245,13 +259,16 @@ impl ClientBuilder {
         .await?;
 
         Ok(Client {
+            dispatcher: Dispatcher::default(),
             client_type: self.client_type,
             inner_client: client,
 
-            dispatcher: Dispatcher::default(),
-            is_connected: false,
             session_file: Some(session_file.to_string()),
+
+            is_connected: false,
             wait_for_ctrl_c: self.wait_for_ctrl_c,
+
+            err_handler: self.err_handler,
         }
         .connect()
         .await?)
@@ -375,6 +392,14 @@ impl ClientBuilder {
     /// Otherwise the code will continue running until it finds the end.
     pub fn wait_for_ctrl_c(mut self) -> Self {
         self.wait_for_ctrl_c = true;
+        self
+    }
+
+    /// Set the global error handler.
+    ///
+    /// Executed when any `handler` returns an error.
+    pub fn on_err<H: ErrorHandler>(mut self, handler: H) -> Self {
+        self.err_handler = Some(Box::new(handler));
         self
     }
 }

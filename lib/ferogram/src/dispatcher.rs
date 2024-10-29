@@ -30,7 +30,7 @@ impl Dispatcher {
     }
 
     /// Handle the update sent by Telegram.
-    pub(crate) async fn handle_update(&self, client: Client, update: Update) -> Result<()> {
+    pub(crate) async fn handle_update(&self, client: &Client, update: &Update) -> Result<()> {
         let mut routers = self.routers.lock().await;
         let mut main_injector = None;
 
@@ -44,7 +44,7 @@ impl Dispatcher {
             }
 
             match router
-                .handle_update(&client, &update, main_injector.unwrap())
+                .handle_update(client, update, main_injector.unwrap())
                 .await
             {
                 Ok(None) => return Ok(()),

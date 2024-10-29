@@ -101,10 +101,11 @@ impl Handler {
     /// Set the error handler.
     ///
     /// Executed when the `endpoint` returns an error.
+    /// If not set, it will execute the global error handler, if any.
     ///
     /// It can be used to try to run the `endpoint` again,
     /// with other filters or injection ways.
-    pub fn on_error<H: ErrorHandler>(mut self, handler: H) -> Self {
+    pub fn on_err<H: ErrorHandler>(mut self, handler: H) -> Self {
         self.err_handler = Some(Box::new(handler));
         self
     }
