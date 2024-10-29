@@ -248,30 +248,7 @@ impl ClientBuilder {
     ///
     /// Connects to the Telegram server, but don't listen to updates.
     pub async fn build_and_connect(self) -> Result<Client> {
-        let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
-
-        let client = grammers_client::Client::connect(Config {
-            session: Session::load_file_or_create(session_file)?,
-            api_id: self.api_id,
-            api_hash: self.api_hash,
-            params: self.init_params,
-        })
-        .await?;
-
-        Ok(Client {
-            dispatcher: Dispatcher::default(),
-            client_type: self.client_type,
-            inner_client: client,
-
-            session_file: Some(session_file.to_string()),
-
-            is_connected: false,
-            wait_for_ctrl_c: self.wait_for_ctrl_c,
-
-            err_handler: self.err_handler,
-        }
-        .connect()
-        .await?)
+        self.build().await?.connect().await
     }
 
     /// Developer's API ID, required to interact with the Telegram's API.
