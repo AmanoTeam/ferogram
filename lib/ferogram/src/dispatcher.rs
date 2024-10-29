@@ -23,16 +23,18 @@ impl Dispatcher {
     /// Attach a new router.
     pub fn router<R: FnOnce(Router) -> Router + 'static>(self, router: R) -> Self {
         let router = router(Router::default());
+        // `router()` only is executed on startup, so `routers` never will be locked.
         self.routers.try_lock().unwrap().push(router);
 
         self
     }
 
     /// Handle the update sent by Telegram.
-    pub(crate) async fn handle_update(&mut self, client: Client, update: Update) -> Result<()> {
+    pub(crate) async fn handle_update(&self, client: Client, update: Update) -> Result<()> {
+        let mut routers = self.routers.lock().await;
         let mut main_injector = None;
 
-        for router in self.routers.lock().await.iter_mut() {
+        for router in routers.iter_mut() {
             if main_injector.is_none() {
                 let mut injector = di::Injector::new();
                 injector.insert(client.clone());

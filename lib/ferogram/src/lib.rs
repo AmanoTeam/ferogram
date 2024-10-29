@@ -11,6 +11,7 @@
 pub mod client;
 pub(crate) mod di;
 mod dispatcher;
+mod error_handler;
 pub mod filter;
 pub(crate) mod filters;
 pub mod flow;
@@ -20,7 +21,9 @@ pub mod utils;
 
 pub use client::Client;
 pub use dispatcher::Dispatcher;
-pub(crate) use filter::Filter;
+pub use error_handler::Error;
+pub(crate) use error_handler::ErrorHandler;
+pub use filter::Filter;
 pub use flow::Action;
 pub(crate) use flow::Flow;
 pub(crate) use handler::Handler;
@@ -31,4 +34,12 @@ pub use grammers_client as grammers;
 #[cfg(feature = "macros")]
 pub use ferogram_macros as macros;
 
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+/// Common types and traits.
+pub mod prelude {
+    pub use super::{
+        filter::{and, not, or},
+        *,
+    };
+}
+
+pub type Result<T> = std::result::Result<T, Error>;

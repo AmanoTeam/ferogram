@@ -64,15 +64,16 @@ impl From<bool> for Flow {
     }
 }
 
+impl From<()> for Flow {
+    fn from(_: ()) -> Self {
+        break_now()
+    }
+}
+
 impl<T: Send + Sync + 'static> From<Option<T>> for Flow {
     fn from(value: Option<T>) -> Self {
         match value {
-            Some(value) => {
-                let mut flow = continue_now();
-                flow.inject(value);
-
-                flow
-            }
+            Some(value) => continue_with(value),
             None => break_now(),
         }
     }
@@ -81,12 +82,7 @@ impl<T: Send + Sync + 'static> From<Option<T>> for Flow {
 impl<T: Send + Sync + 'static> From<Result<T>> for Flow {
     fn from(value: Result<T>) -> Self {
         match value {
-            Ok(value) => {
-                let mut flow = continue_now();
-                flow.inject(value);
-
-                flow
-            }
+            Ok(value) => continue_with(value),
             Err(_) => break_now(),
         }
     }

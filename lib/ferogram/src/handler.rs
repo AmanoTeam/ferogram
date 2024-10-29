@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use grammers_client::{Client, Update};
 
-use crate::{di, flow, Filter, Flow};
+use crate::{di, flow, ErrorHandler, Filter, Flow};
 
 /// Handler.
 #[derive(Clone)]
@@ -18,7 +18,7 @@ pub struct Handler {
     handler_type: HandlerType,
 
     filter: Option<Arc<dyn Filter>>,
-    pub(crate) err_filter: Option<Arc<dyn Filter>>,
+    pub(crate) err_handler: Option<Box<dyn ErrorHandler>>,
     pub(crate) endpoint: Option<di::Endpoint>,
 }
 
@@ -29,7 +29,7 @@ impl Handler {
             handler_type: HandlerType::NewMessage,
 
             filter: Some(Arc::new(filter)),
-            err_filter: None,
+            err_handler: None,
             endpoint: None,
         }
     }
@@ -40,7 +40,7 @@ impl Handler {
             handler_type: HandlerType::Raw,
 
             filter: Some(Arc::new(filter)),
-            err_filter: None,
+            err_handler: None,
             endpoint: None,
         }
     }
@@ -51,7 +51,7 @@ impl Handler {
             handler_type: HandlerType::MessageEdited,
 
             filter: Some(Arc::new(filter)),
-            err_filter: None,
+            err_handler: None,
             endpoint: None,
         }
     }
@@ -62,7 +62,7 @@ impl Handler {
             handler_type: HandlerType::MessageDeleted,
 
             filter: Some(Arc::new(filter)),
-            err_filter: None,
+            err_handler: None,
             endpoint: None,
         }
     }
@@ -73,7 +73,7 @@ impl Handler {
             handler_type: HandlerType::CallbackQuery,
 
             filter: Some(Arc::new(filter)),
-            err_filter: None,
+            err_handler: None,
             endpoint: None,
         }
     }
@@ -84,7 +84,7 @@ impl Handler {
             handler_type: HandlerType::InlineQuery,
 
             filter: Some(Arc::new(filter)),
-            err_filter: None,
+            err_handler: None,
             endpoint: None,
         }
     }
@@ -98,14 +98,14 @@ impl Handler {
         self
     }
 
-    /// Set the error filter.
+    /// Set the error handler.
     ///
     /// Executed when the `endpoint` returns an error.
     ///
     /// It can be used to try to run the `endpoint` again,
     /// with other filters or injection ways.
-    pub fn on_error<F: Filter>(mut self, filter: F) -> Self {
-        self.err_filter = Some(Arc::new(filter));
+    pub fn on_error<H: ErrorHandler>(mut self, handler: H) -> Self {
+        self.err_handler = Some(Box::new(handler));
         self
     }
 
@@ -179,7 +179,7 @@ pub fn then<I, H: di::Handler>(endpoint: impl di::IntoHandler<I, Handler = H>) -
         handler_type: HandlerType::Raw,
 
         filter: None,
-        err_filter: None,
+        err_handler: None,
         endpoint: Some(Box::new(endpoint.into_handler())),
     }
 }

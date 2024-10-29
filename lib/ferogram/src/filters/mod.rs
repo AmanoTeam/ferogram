@@ -31,18 +31,12 @@ pub async fn never(_: Client, _: Update) -> bool {
 
 /// Pass if `first` or `other` pass.
 pub fn or<F: Filter, O: Filter>(first: F, other: O) -> impl Filter {
-    Or {
-        first: Arc::new(first),
-        other: Arc::new(other),
-    }
+    first.or(other)
 }
 
 /// Pass if `first` and `second` pass.
 pub fn and<F: Filter, S: Filter>(first: F, second: S) -> impl Filter {
-    And {
-        first: Arc::new(first),
-        second: Arc::new(second),
-    }
+    first.and(second)
 }
 
 /// Pass if `filter` don't pass.

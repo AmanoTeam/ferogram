@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{net::SocketAddr, path::Path};
+use std::{net::SocketAddr, path::Path, sync::Arc};
 
 use grammers_client::{session::Session, Config, InitParams, SignInError};
 
@@ -125,17 +125,17 @@ impl Client {
     /// Listen to Telegram's updates and send them to the dispatcher's routers.
     pub async fn run(self) -> Result<()> {
         let handle = self.inner_client;
-        let dispatcher = self.dispatcher;
+        let dispatcher = Arc::new(self.dispatcher);
 
         tokio::task::spawn(async move {
             loop {
                 match handle.next_update().await {
                     Ok(update) => {
-                        let handle = handle.clone();
-                        let mut dispatcher = dispatcher.clone();
+                        let client = handle.clone();
+                        let dispatcher = Arc::clone(&dispatcher);
 
                         tokio::task::spawn(async move {
-                            match dispatcher.handle_update(handle, update).await {
+                            match dispatcher.handle_update(client, update).await {
                                 Ok(_) => {}
                                 Err(e) => {
                                     log::error!("Error handling update: {:?}", e);
