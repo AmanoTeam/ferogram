@@ -13,7 +13,11 @@ mod or;
 use std::sync::Arc;
 
 pub(crate) use and::And;
-use grammers_client::{grammers_tl_types as tl, types::Media, Client, Update};
+use grammers_client::{
+    grammers_tl_types as tl,
+    types::{Chat, Media},
+    Client, Update,
+};
 pub(crate) use not::Not;
 pub(crate) use or::Or;
 
@@ -249,9 +253,110 @@ pub async fn forwarded(_: Client, update: Update) -> Flow {
     flow::break_now()
 }
 
+/// Pass if the chat is private.
+///
+/// Injects `Chat`: private chat.
+///         `User`: private chat.
+pub async fn private(_: Client, update: Update) -> Flow {
+    match update {
+        Update::NewMessage(message) | Update::MessageEdited(message) => {
+            let chat = message.chat();
+
+            if let Chat::User(ref user) = chat {
+                let mut flow = flow::continue_with(user.clone());
+                flow.inject(chat);
+
+                return flow;
+            }
+
+            flow::break_now()
+        }
+        Update::CallbackQuery(query) => {
+            let chat = query.chat();
+
+            if let Chat::User(user) = chat {
+                let mut flow = flow::continue_with(user.clone());
+                flow.inject(chat.clone());
+
+                return flow;
+            }
+
+            flow::break_now()
+        }
+        _ => flow::break_now(),
+    }
+}
+
+/// Pass if the chat is a group or a supergroup.
+///
+/// Injects `Chat`: group chat.
+///         `Group`: group chat.
+pub async fn group(_: Client, update: Update) -> Flow {
+    match update {
+        Update::NewMessage(message) | Update::MessageEdited(message) => {
+            let chat = message.chat();
+
+            if let Chat::Group(ref group) = chat {
+                let mut flow = flow::continue_with(group.clone());
+                flow.inject(chat);
+
+                return flow;
+            }
+
+            flow::break_now()
+        }
+        Update::CallbackQuery(query) => {
+            let chat = query.chat();
+
+            if let Chat::Group(group) = chat {
+                let mut flow = flow::continue_with(group.clone());
+                flow.inject(chat.clone());
+
+                return flow;
+            }
+
+            flow::break_now()
+        }
+        _ => flow::break_now(),
+    }
+}
+
+/// Pass if the chat is a channel.
+/// Injects `Chat`: channel.
+///         `Channel`: channel.
+pub async fn channel(_: Client, update: Update) -> Flow {
+    match update {
+        Update::NewMessage(message) | Update::MessageEdited(message) => {
+            let chat = message.chat();
+
+            if let Chat::Channel(ref channel) = chat {
+                let mut flow = flow::continue_with(channel.clone());
+                flow.inject(chat);
+
+                return flow;
+            }
+
+            flow::break_now()
+        }
+        Update::CallbackQuery(query) => {
+            let chat = query.chat();
+
+            if let Chat::Channel(channel) = chat {
+                let mut flow = flow::continue_with(channel.clone());
+                flow.inject(chat.clone());
+
+                return flow;
+            }
+
+            flow::break_now()
+        }
+        _ => flow::break_now(),
+    }
+}
+
 /// Pass if the message is a reply.
 ///
-/// Injects `Message`: reply message
+/// Injects `Message`: reply message.
 pub async fn reply(_: Client, update: Update) -> Flow {
     match update {
         Update::NewMessage(message) | Update::MessageEdited(message) => {
@@ -268,7 +373,7 @@ pub async fn reply(_: Client, update: Update) -> Flow {
 
 /// Pass if the message is a reply and contains the specified text.
 ///
-/// Injects `Message`: reply message
+/// Injects `Message`: reply message.
 pub fn reply_text(pat: &'static str) -> impl Filter {
     Arc::new(move |_, update| async move {
         match update {
