@@ -16,7 +16,7 @@ use tokio::sync::Mutex;
 use crate::{di, Result, Router};
 
 /// Dispatcher
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct Dispatcher {
     routers: Arc<Mutex<Vec<Router>>>,
     injector: di::Injector,

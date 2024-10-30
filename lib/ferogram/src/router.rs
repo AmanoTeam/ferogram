@@ -14,7 +14,7 @@ use grammers_client::Update;
 use crate::{di::Injector, Handler, Result};
 
 /// Dispatcher's router
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct Router {
     handlers: Vec<Handler>,
     routers: Vec<Router>,
@@ -98,7 +98,8 @@ mod tests {
         let router = Router::default()
             .handler(handler::then(|| async { Ok(()) }))
             .handler(handler::new_message(|_, _| async { true }))
-            .handler(handler::new_update(filter).then(endpoint));
+            .handler(handler::new_update(filter).then(endpoint))
+            .handler(handler::then(|_update: Update| async { Ok(()) }));
 
         assert_eq!(router.handlers.len(), 3);
     }

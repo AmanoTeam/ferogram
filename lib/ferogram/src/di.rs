@@ -40,7 +40,7 @@ impl Injector {
     }
 
     /// Insert a new resource.
-    pub fn insert<R: Send + Sync + 'static>(&mut self, value: R) {
+    pub fn insert<R: Clone + Send + Sync + 'static>(&mut self, value: R) {
         self.resources
             .entry(TypeId::of::<R>())
             .or_insert_with(Vec::new)
@@ -48,7 +48,7 @@ impl Injector {
     }
 
     /// Insert a new resource.
-    pub fn with<R: Send + Sync + 'static>(mut self, value: R) -> Self {
+    pub fn with<R: Clone + Send + Sync + 'static>(mut self, value: R) -> Self {
         self.insert(value);
         self
     }
@@ -69,6 +69,14 @@ impl Injector {
             Entry::Occupied(mut e) => e.get_mut().pop().unwrap().value.downcast().ok(),
             Entry::Vacant(_) => None,
         }
+    }
+
+    /// Get a reference for a resource.
+    pub fn get<R: Send + Sync + 'static>(&self) -> Option<&R> {
+        self.resources
+            .get(&TypeId::of::<R>())
+            .and_then(|values| values.last())
+            .and_then(|resource| resource.value.downcast_ref())
     }
 }
 
@@ -92,19 +100,19 @@ impl Resource {
 
 #[async_trait]
 /// Handler trait.
-pub trait Handler: CloneHandler + Send + Sync + 'static {
+pub trait Handler: Send + Sync + 'static {
+    /// Handle the request.
     async fn handle(&mut self, injector: &mut Injector) -> Result<()>;
 }
 
 macro_rules! impl_handler {
     ($($params:ident),*) => {
         #[async_trait]
-        impl<Fut, Output, $($params),*> Handler for HandlerFunc<($($params,)*), Fut>
+        impl<Fut: ?Sized, Output, $($params),*> Handler for HandlerFunc<($($params,)*), Fut>
         where
             Fut: FnMut($($params),*) -> Output + Clone + Send + Sync + 'static,
             Output: Future<Output = Result<()>> + Send + Sync + 'static,
             $($params: Clone + Send + Sync + 'static,)*
-            Self: Sized,
         {
             #[inline]
             #[allow(unused_mut)]
@@ -112,7 +120,7 @@ macro_rules! impl_handler {
             #[allow(unused_variables)]
             async fn handle(&mut self, injector: &mut Injector) -> Result<()> {
                 $(
-                    let $params = std::borrow::Borrow::<$params>::borrow(match injector.take::<$params>() {
+                    let $params = std::borrow::Borrow::<$params>::borrow(match injector.take() {
                         Some(ref value) => value,
                         None => return Err(format!("Missing dependency: {:?}", stringify!($params)).into()),
                     })
@@ -159,12 +167,11 @@ pub trait IntoHandler<Input>: Send {
 
 macro_rules! impl_into_handler {
     ($($params:ident),*) => {
-        impl<Fut, Output, $($params),*> IntoHandler<($($params,)*)> for Fut
+        impl<Fut: ?Sized, Output, $($params),*> IntoHandler<($($params,)*)> for Fut
         where
             Fut: FnMut($($params),*) -> Output + Clone + Send + Sync + 'static,
             Output: Future<Output = Result<()>> + Send + Sync + 'static,
-            $($params: Clone + Send + Sync + 'static ,)*
-            Self: Sized,
+            $($params: Clone + Send + Sync + 'static,)*
         {
             type Handler = HandlerFunc<($($params,)*), Self>;
 
@@ -196,23 +203,3 @@ impl_into_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
 impl_into_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
 impl_into_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
 impl_into_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
-
-/// Clone the handler trait.
-pub trait CloneHandler {
-    fn clone_handler(&self) -> Box<dyn Handler>;
-}
-
-impl<T> CloneHandler for T
-where
-    T: Handler + Clone,
-{
-    fn clone_handler(&self) -> Box<dyn Handler> {
-        Box::new(self.clone())
-    }
-}
-
-impl Clone for Box<dyn Handler> {
-    fn clone(&self) -> Self {
-        self.clone_handler()
-    }
-}

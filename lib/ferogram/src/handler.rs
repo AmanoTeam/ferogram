@@ -17,7 +17,6 @@ use crate::{di, flow, ErrorHandler, Filter, Flow};
 /// A handler.
 ///
 /// Stores a [`Filter`], an [`di::Endpoint`] and an [`ErrorHandler`].
-#[derive(Clone)]
 pub struct Handler {
     handler_type: HandlerType,
 
