@@ -251,13 +251,217 @@ pub async fn forwarded(_: Client, update: Update) -> Flow {
 
 /// Pass if the message is a reply.
 ///
-/// Injects [`grammers_client::types::Message`]: reply message
+/// Injects `Message`: reply message
 pub async fn reply(_: Client, update: Update) -> Flow {
     match update {
         Update::NewMessage(message) | Update::MessageEdited(message) => {
             if message.reply_to_message_id().is_some() {
                 let reply = message.get_reply().await.unwrap().unwrap();
                 return flow::continue_with(reply);
+            }
+
+            flow::break_now()
+        }
+        _ => flow::break_now(),
+    }
+}
+
+/// Pass if the message is a reply and contains the specified text.
+///
+/// Injects `Message`: reply message
+pub fn reply_text(pat: &'static str) -> impl Filter {
+    Arc::new(move |_, update| async move {
+        match update {
+            Update::NewMessage(message) | Update::MessageEdited(message) => {
+                if message.reply_to_message_id().is_some() {
+                    let reply = message.get_reply().await.unwrap().unwrap();
+
+                    if reply.text().contains(pat) {
+                        return flow::continue_with(reply);
+                    }
+                }
+
+                flow::break_now()
+            }
+            _ => flow::break_now(),
+        }
+    })
+}
+
+/// Pass if the message is a reply and has a poll.
+///
+/// Injects `Poll`: reply message's poll.
+pub async fn reply_poll(_: Client, update: Update) -> Flow {
+    match update {
+        Update::NewMessage(message) | Update::MessageEdited(message) => {
+            if message.reply_to_message_id().is_some() {
+                let reply = message.get_reply().await.unwrap().unwrap();
+
+                if let Some(Media::Poll(poll)) = reply.media() {
+                    return flow::continue_with(poll);
+                }
+            }
+
+            flow::break_now()
+        }
+        _ => flow::break_now(),
+    }
+}
+
+/// Pass if the message is a reply and has an audio.
+///
+/// Injects `Document`: reply message's audio.
+pub async fn reply_audio(_: Client, update: Update) -> Flow {
+    match update {
+        Update::NewMessage(message) | Update::MessageEdited(message) => {
+            if message.reply_to_message_id().is_some() {
+                let reply = message.get_reply().await.unwrap().unwrap();
+
+                if let Some(media) = reply.media() {
+                    if let Media::Document(document) = media {
+                        if document.audio_title().is_some()
+                            || document.performer().is_some()
+                            || document
+                                .mime_type()
+                                .map_or(false, |mime| mime.starts_with("audio/"))
+                        {
+                            return flow::continue_with(document);
+                        }
+                    }
+                }
+            }
+
+            flow::break_now()
+        }
+        _ => flow::break_now(),
+    }
+}
+
+/// Pass if the message is a reply and has a photo.
+///
+/// Injects `Photo`: reply message's photo.
+pub async fn reply_photo(_: Client, update: Update) -> Flow {
+    match update {
+        Update::NewMessage(message) | Update::MessageEdited(message) => {
+            if message.reply_to_message_id().is_some() {
+                let reply = message.get_reply().await.unwrap().unwrap();
+
+                if let Some(photo) = reply.photo() {
+                    return flow::continue_with(photo);
+                } else if let Some(Media::Photo(photo)) = reply.media() {
+                    return flow::continue_with(photo);
+                }
+            }
+
+            flow::break_now()
+        }
+        _ => flow::break_now(),
+    }
+}
+
+/// Pass if the message is a reply and has a video.
+///
+/// Injects `Document`: reply message's video.
+pub async fn reply_video(_: Client, update: Update) -> Flow {
+    match update {
+        Update::NewMessage(message) | Update::MessageEdited(message) => {
+            if message.reply_to_message_id().is_some() {
+                let reply = message.get_reply().await.unwrap().unwrap();
+
+                if let Some(media) = reply.media() {
+                    if let Media::Document(document) = media {
+                        if document
+                            .mime_type()
+                            .map_or(false, |mime| mime.starts_with("video/"))
+                        {
+                            return flow::continue_with(document);
+                        }
+                    }
+                }
+            }
+
+            flow::break_now()
+        }
+        _ => flow::break_now(),
+    }
+}
+
+/// Pass if the message is a reply and has a document.
+///
+/// Injects `Document`: reply message's document.
+pub async fn reply_document(_: Client, update: Update) -> Flow {
+    match update {
+        Update::NewMessage(message) | Update::MessageEdited(message) => {
+            if message.reply_to_message_id().is_some() {
+                let reply = message.get_reply().await.unwrap().unwrap();
+
+                if let Some(Media::Document(document)) = reply.media() {
+                    return flow::continue_with(document);
+                }
+            }
+
+            flow::break_now()
+        }
+        _ => flow::break_now(),
+    }
+}
+
+/// Pass if the message is a reply and has a sticker.
+///
+/// Injects `Sticker`: reply message's sticker.
+pub async fn reply_sticker(_: Client, update: Update) -> Flow {
+    match update {
+        Update::NewMessage(message) | Update::MessageEdited(message) => {
+            if message.reply_to_message_id().is_some() {
+                let reply = message.get_reply().await.unwrap().unwrap();
+
+                if let Some(Media::Sticker(sticker)) = reply.media() {
+                    return flow::continue_with(sticker);
+                }
+            }
+
+            flow::break_now()
+        }
+        _ => flow::break_now(),
+    }
+}
+
+/// Pass if the message is a reply and has an animated sticker.
+///
+/// Injects `Document`: reply message's animated sticker.
+pub async fn reply_animated_sticker(_: Client, update: Update) -> Flow {
+    match update {
+        Update::NewMessage(message) | Update::MessageEdited(message) => {
+            if message.reply_to_message_id().is_some() {
+                let reply = message.get_reply().await.unwrap().unwrap();
+
+                if let Some(media) = reply.media() {
+                    if let Media::Document(document) = media {
+                        if document.is_animated() {
+                            return flow::continue_with(document);
+                        }
+                    }
+                }
+            }
+
+            flow::break_now()
+        }
+        _ => flow::break_now(),
+    }
+}
+
+/// Pass if the message is a reply and has a dice.
+///
+/// Injects `Dice`: reply message's dice.
+pub async fn reply_dice(_: Client, update: Update) -> Flow {
+    match update {
+        Update::NewMessage(message) | Update::MessageEdited(message) => {
+            if message.reply_to_message_id().is_some() {
+                let reply = message.get_reply().await.unwrap().unwrap();
+
+                if let Some(Media::Dice(dice)) = reply.media() {
+                    return flow::continue_with(dice);
+                }
             }
 
             flow::break_now()
