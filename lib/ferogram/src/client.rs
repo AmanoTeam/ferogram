@@ -10,7 +10,7 @@
 
 use std::{net::SocketAddr, path::Path, sync::Arc};
 
-use grammers_client::{session::Session, Config, InitParams, SignInError};
+use grammers_client::{session::Session, Config, InitParams, ReconnectionPolicy, SignInError};
 
 use crate::{utils::prompt, Dispatcher, ErrorHandler, Result};
 
@@ -379,6 +379,15 @@ impl ClientBuilder {
     /// Executed when any `handler` returns an error.
     pub fn on_err<H: ErrorHandler>(mut self, handler: H) -> Self {
         self.err_handler = Some(Box::new(handler));
+        self
+    }
+
+    /// Set the reconnection policy.
+    ///
+    /// Executed when the client loses the connection or the
+    /// Telegram server closes it.
+    pub fn reconnection_policy<P: ReconnectionPolicy>(mut self, policy: &'static P) -> Self {
+        self.init_params.reconnection_policy = policy;
         self
     }
 }
