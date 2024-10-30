@@ -248,3 +248,20 @@ pub async fn forwarded(_: Client, update: Update) -> Flow {
 
     flow::break_now()
 }
+
+/// Pass if the message is a reply.
+///
+/// Injects [`grammers_client::types::Message`]: reply message
+pub async fn reply(_: Client, update: Update) -> Flow {
+    match update {
+        Update::NewMessage(message) | Update::MessageEdited(message) => {
+            if message.reply_to_message_id().is_some() {
+                let reply = message.get_reply().await.unwrap().unwrap();
+                return flow::continue_with(reply);
+            }
+
+            flow::break_now()
+        }
+        _ => flow::break_now(),
+    }
+}

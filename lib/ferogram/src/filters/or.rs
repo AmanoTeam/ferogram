@@ -22,12 +22,12 @@ pub struct Or {
 impl Filter for Or {
     async fn check(&self, client: Client, update: Update) -> Flow {
         let first_flow = self.first.check(client.clone(), update.clone()).await;
-        let second_flow = self.other.check(client, update).await;
+        let other_flow = self.other.check(client, update).await;
 
         if first_flow.is_continue() {
             first_flow
-        } else if second_flow.is_continue() {
-            second_flow
+        } else if other_flow.is_continue() {
+            other_flow
         } else {
             flow::break_now()
         }

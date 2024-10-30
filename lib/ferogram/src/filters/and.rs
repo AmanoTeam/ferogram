@@ -24,14 +24,14 @@ impl Filter for And {
         let first_flow = self.first.check(client.clone(), update.clone()).await;
         let second_flow = self.second.check(client, update).await;
 
-        let mut first_injector = first_flow.injector.lock().await;
-        let mut second_injector = second_flow.injector.lock().await;
-
-        second_injector.extend(&mut first_injector);
-        drop(second_injector);
-
         if first_flow.is_continue() && second_flow.is_continue() {
-            second_flow
+            let mut first_injector = first_flow.injector.lock().await;
+            let mut second_injector = second_flow.injector.lock().await;
+
+            first_injector.extend(&mut second_injector);
+            drop(first_injector);
+
+            first_flow
         } else {
             flow::break_now()
         }

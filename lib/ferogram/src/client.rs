@@ -80,7 +80,7 @@ impl Client {
         let client = &self.inner_client;
         if !client.is_authorized().await? {
             match self.client_type {
-                ClientType::Bot(ref token) => match client.bot_sign_in(&token).await {
+                ClientType::Bot(ref token) => match client.bot_sign_in(token).await {
                     Ok(_) => {
                         client.session().save_to_file(session_file)?;
                     }
@@ -90,7 +90,7 @@ impl Client {
                 },
                 ClientType::User(ref phone_number) => {
                     println!("You need to authorize your account. Requesting code...");
-                    let token = client.request_login_code(&phone_number).await?;
+                    let token = client.request_login_code(phone_number).await?;
                     let code = prompt("Enter the code you received: ", false)?;
 
                     match client.sign_in(&token, &code).await {
