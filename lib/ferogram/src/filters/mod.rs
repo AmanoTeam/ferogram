@@ -322,6 +322,7 @@ pub async fn group(_: Client, update: Update) -> Flow {
 }
 
 /// Pass if the chat is a channel.
+///
 /// Injects `Chat`: channel.
 ///         `Channel`: channel.
 pub async fn channel(_: Client, update: Update) -> Flow {
@@ -352,6 +353,133 @@ pub async fn channel(_: Client, update: Update) -> Flow {
         }
         _ => flow::break_now(),
     }
+}
+
+/// Pass if the chat id is the specified id.
+///
+/// Injects `Chat`: chat.
+pub fn id(id: i64) -> impl Filter {
+    Arc::new(move |_, update| async move {
+        match update {
+            Update::NewMessage(message) | Update::MessageEdited(message) => {
+                let chat = message.chat();
+
+                if chat.id() == id {
+                    return flow::continue_with(chat);
+                }
+
+                flow::break_now()
+            }
+            Update::CallbackQuery(query) => {
+                let chat = query.chat();
+
+                if chat.id() == id {
+                    return flow::continue_with(chat.clone());
+                }
+
+                flow::break_now()
+            }
+            _ => flow::break_now(),
+        }
+    })
+}
+
+/// Pass if the chat usernames contains the specified username.
+///
+/// The username cannot contain the "@" prefix.
+///
+/// Injects `Chat`: chat.
+pub fn username(username: &'static str) -> impl Filter {
+    Arc::new(move |_, update| async move {
+        match update {
+            Update::NewMessage(message) | Update::MessageEdited(message) => {
+                let chat = message.chat();
+
+                if chat.username() == Some(username) {
+                    return flow::continue_with(chat);
+                } else {
+                    let usernames = chat.usernames();
+
+                    if usernames.contains(&username) {
+                        return flow::continue_with(chat);
+                    }
+                }
+
+                flow::break_now()
+            }
+            Update::CallbackQuery(query) => {
+                let chat = query.chat();
+
+                if chat.username() == Some(username) {
+                    return flow::continue_with(chat.clone());
+                } else {
+                    let usernames = chat.usernames();
+
+                    if usernames.contains(&username) {
+                        return flow::continue_with(chat.clone());
+                    }
+                }
+
+                flow::break_now()
+            }
+
+            _ => flow::break_now(),
+        }
+    })
+}
+
+/// Pass if the chat usernames contains any of the specified usernames.
+///
+/// The usernames cannot contain the "@" prefix.
+///
+/// Injects `Chat`: chat.
+pub fn usernames(usernames: &'static [&'static str]) -> impl Filter {
+    Arc::new(move |_, update| async move {
+        match update {
+            Update::NewMessage(message) | Update::MessageEdited(message) => {
+                let chat = message.chat();
+
+                if let Some(chat_username) = chat.username() {
+                    if usernames.contains(&chat_username) {
+                        return flow::continue_with(chat);
+                    }
+                } else {
+                    let chat_usernames = chat.usernames();
+
+                    if chat_usernames
+                        .iter()
+                        .any(|username| usernames.contains(username))
+                    {
+                        return flow::continue_with(chat);
+                    }
+                }
+
+                flow::break_now()
+            }
+            Update::CallbackQuery(query) => {
+                let chat = query.chat();
+
+                if let Some(chat_username) = chat.username() {
+                    if usernames.contains(&chat_username) {
+                        return flow::continue_with(chat.clone());
+                    }
+                } else {
+                    let chat_usernames = chat.usernames();
+
+                    if chat_usernames
+                        .iter()
+                        .any(|username| usernames.contains(username))
+                    {
+                        return flow::continue_with(chat.clone());
+                    }
+                }
+
+                flow::break_now()
+            }
+
+            _ => flow::break_now(),
+        }
+    })
 }
 
 /// Pass if the message is a reply.
