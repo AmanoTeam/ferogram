@@ -6,6 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//! Dependency injection module.
+
 use futures::Future;
 use std::{
     any::{Any, TypeId},
@@ -20,7 +22,7 @@ use crate::Result;
 
 /// Endpoint type.
 ///
-/// A boxed `Handler`.
+/// A boxed [`Handler`].
 pub type Endpoint = Box<dyn Handler>;
 
 /// Dependency injector.
@@ -43,6 +45,12 @@ impl Injector {
             .entry(TypeId::of::<R>())
             .or_insert_with(Vec::new)
             .push(Resource::new(value));
+    }
+
+    /// Insert a new resource.
+    pub fn with<R: Send + Sync + 'static>(mut self, value: R) -> Self {
+        self.insert(value);
+        self
     }
 
     /// Extend the resources with the resources of another injector.
@@ -104,8 +112,8 @@ macro_rules! impl_handler {
             #[allow(unused_variables)]
             async fn handle(&mut self, injector: &mut Injector) -> Result<()> {
                 $(
-                    let $params = std::borrow::Borrow::<$params>::borrow(&match injector.take::<$params>() {
-                        Some(value) => value,
+                    let $params = std::borrow::Borrow::<$params>::borrow(match injector.take::<$params>() {
+                        Some(ref value) => value,
                         None => return Err(format!("Missing dependency: {:?}", stringify!($params)).into()),
                     })
                     .clone();
@@ -142,7 +150,7 @@ pub struct HandlerFunc<Input, F> {
     marker: PhantomData<fn() -> Input>,
 }
 
-/// Converts a function into a `Handler`.
+/// Converts a function into a [`Handler`].
 pub trait IntoHandler<Input>: Send {
     type Handler: Handler + Send;
 

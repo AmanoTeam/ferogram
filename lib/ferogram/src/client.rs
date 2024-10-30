@@ -6,6 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//! Client module.
+
 use std::{net::SocketAddr, path::Path, sync::Arc};
 
 use grammers_client::{session::Session, Config, InitParams, SignInError};

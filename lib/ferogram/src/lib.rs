@@ -8,6 +8,10 @@
 
 #![deny(unsafe_code)]
 
+//! Ferogram is a small framework for building Telegram bots using the [`grammers`] library.
+//!
+//! The main module of the library.
+
 pub mod client;
 pub(crate) mod di;
 mod dispatcher;
@@ -32,14 +36,31 @@ pub use router::Router;
 pub use grammers_client as grammers;
 
 #[cfg(feature = "macros")]
+#[allow(unused_imports)]
 pub use ferogram_macros as macros;
+
+#[cfg(feature = "macros")]
+/// Construct [`di::Injector`] with a list of dependencies effortlessly.
+///
+/// # Example
+///
+/// ```
+/// deps![Database::connect().await, I18n::load()]
+/// ```
+#[macro_export]
+macro_rules! deps {
+        [$($dep:expr),*] => {
+            |injector| { injector$(.with($dep))* }
+        };
+    }
 
 /// Common types and traits.
 pub mod prelude {
-    pub use super::{
+    pub use crate::{
         filter::{and, not, or},
         *,
     };
 }
 
+/// std [`Result`] with [`error_handler::Error`].
 pub type Result<T> = std::result::Result<T, Error>;

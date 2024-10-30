@@ -6,6 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//! Router module.
+
 use async_recursion::async_recursion;
 use grammers_client::Update;
 

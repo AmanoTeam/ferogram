@@ -6,6 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//! Dispatcher module.
+
 use std::sync::Arc;
 
 use grammers_client::{Client, Update};

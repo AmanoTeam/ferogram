@@ -6,6 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//! Flow module.
+
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
@@ -20,12 +22,12 @@ pub struct Flow {
 }
 
 impl Flow {
-    /// Change the current action to `Break`.
+    /// Change the current action to [`Action::Break`].
     pub fn to_break(&mut self) {
         self.action = Action::Break;
     }
 
-    /// Change the current action to `Continue`.
+    /// Change the current action to [`Action::Continue`].
     pub fn to_continue(&mut self) {
         self.action = Action::Continue;
     }
@@ -35,14 +37,20 @@ impl Flow {
         self.injector.try_lock().unwrap().insert(value);
     }
 
-    /// Check if the current action is `Break`.
+    /// Check if the current action is [`Action::Break`].
     pub fn is_break(&self) -> bool {
         matches!(self.action, Action::Continue)
     }
 
-    /// Check if the current action is `Continue`.
+    /// Check if the current action is [`Action::Continue`].
     pub fn is_continue(&self) -> bool {
         matches!(self.action, Action::Continue)
+    }
+}
+
+impl From<()> for Flow {
+    fn from(_: ()) -> Self {
+        break_now()
     }
 }
 
@@ -53,12 +61,6 @@ impl From<bool> for Flow {
         } else {
             break_now()
         }
-    }
-}
-
-impl From<()> for Flow {
-    fn from(_: ()) -> Self {
-        break_now()
     }
 }
 
@@ -88,7 +90,7 @@ pub enum Action {
     Continue,
 }
 
-/// Create a new flow with action `Break`.
+/// Create a new flow with action [`Action::Break`].
 pub fn break_now() -> Flow {
     Flow {
         action: Action::Break,
@@ -96,7 +98,7 @@ pub fn break_now() -> Flow {
     }
 }
 
-/// Create a new flow with action `Continue`.
+/// Create a new flow with action [`Action::Continue`].
 pub fn continue_now() -> Flow {
     Flow {
         action: Action::Continue,
@@ -104,7 +106,7 @@ pub fn continue_now() -> Flow {
     }
 }
 
-/// Create a new flow with action `Continue` and inject a value.
+/// Create a new flow with action [`Action::Continue`] and inject a value.
 pub fn continue_with<R: Send + Sync + 'static>(value: R) -> Flow {
     let mut flow = continue_now();
     flow.inject(value);

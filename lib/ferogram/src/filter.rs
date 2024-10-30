@@ -6,6 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//! Filters module.
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -23,7 +25,7 @@ pub trait Filter: Send + Sync + 'static {
     /// Check if the update should be handled.
     async fn check(&self, client: Client, update: Update) -> Flow;
 
-    /// Wrappers `self` and `second` into `And` filter.
+    /// Wrappers `self` and `second` into [`And`] filter.
     fn and<S: Filter>(self, second: S) -> And
     where
         Self: Sized,
@@ -34,7 +36,7 @@ pub trait Filter: Send + Sync + 'static {
         }
     }
 
-    /// Wrappers `self` and `other` into `Or` filter.
+    /// Wrappers `self` and `other` into [`Or`] filter.
     fn or<O: Filter>(self, other: O) -> Or
     where
         Self: Sized,
@@ -45,7 +47,7 @@ pub trait Filter: Send + Sync + 'static {
         }
     }
 
-    /// Wrappers `self` into `Not` filter.
+    /// Wrappers `self` into [`Not`] filter.
     fn not(self) -> Not
     where
         Self: Sized,
