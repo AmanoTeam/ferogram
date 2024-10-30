@@ -21,12 +21,12 @@ use crate::{flow, Flow};
 ///
 /// Checked at each update to know if the update should be handled.
 #[async_trait]
-pub trait Filter: Send + Sync + 'static {
+pub trait FilterHandler: Send + Sync + 'static {
     /// Check if the update should be handled.
     async fn check(&self, client: Client, update: Update) -> Flow;
 
     /// Wrappers `self` and `second` into [`And`] filter.
-    fn and<S: Filter>(self, second: S) -> And
+    fn and<S: FilterHandler>(self, second: S) -> And
     where
         Self: Sized,
     {
@@ -37,7 +37,7 @@ pub trait Filter: Send + Sync + 'static {
     }
 
     /// Wrappers `self` and `other` into [`Or`] filter.
-    fn or<O: Filter>(self, other: O) -> Or
+    fn or<O: FilterHandler>(self, other: O) -> Or
     where
         Self: Sized,
     {
@@ -59,7 +59,7 @@ pub trait Filter: Send + Sync + 'static {
 }
 
 #[async_trait]
-impl<T: ?Sized, F, O: Into<Flow>> Filter for T
+impl<T: ?Sized, F, O: Into<Flow>> FilterHandler for T
 where
     T: Fn(Client, Update) -> F + Send + Sync + 'static,
     F: Future<Output = O> + Send + Sync + 'static,
@@ -73,7 +73,7 @@ where
 }
 
 #[async_trait]
-impl<T: ?Sized, F, O: Into<Flow>> Filter for Arc<T>
+impl<T: ?Sized, F, O: Into<Flow>> FilterHandler for Arc<T>
 where
     T: Fn(Client, Update) -> F + Send + Sync + 'static,
     F: Future<Output = O> + Send + Sync + 'static,

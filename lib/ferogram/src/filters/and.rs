@@ -11,15 +11,15 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use grammers_client::{Client, Update};
 
-use crate::{flow, Filter, Flow};
+use crate::{flow, FilterHandler, Flow};
 
 pub struct And {
-    pub(crate) first: Arc<dyn Filter>,
-    pub(crate) second: Arc<dyn Filter>,
+    pub(crate) first: Arc<dyn FilterHandler>,
+    pub(crate) second: Arc<dyn FilterHandler>,
 }
 
 #[async_trait]
-impl Filter for And {
+impl FilterHandler for And {
     async fn check(&self, client: Client, update: Update) -> Flow {
         let first_flow = self.first.check(client.clone(), update.clone()).await;
         let second_flow = self.second.check(client, update).await;

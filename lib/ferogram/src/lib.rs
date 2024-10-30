@@ -27,7 +27,7 @@ pub use client::Client;
 pub use dispatcher::Dispatcher;
 pub use error_handler::Error;
 pub(crate) use error_handler::ErrorHandler;
-pub use filter::Filter;
+pub use filter::FilterHandler;
 pub use flow::Action;
 pub(crate) use flow::Flow;
 pub(crate) use handler::Handler;

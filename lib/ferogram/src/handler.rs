@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use grammers_client::{Client, Update};
 
-use crate::{di, flow, ErrorHandler, Filter, Flow};
+use crate::{di, flow, ErrorHandler, FilterHandler, Flow};
 
 /// A handler.
 ///
@@ -20,14 +20,14 @@ use crate::{di, flow, ErrorHandler, Filter, Flow};
 pub struct Handler {
     handler_type: HandlerType,
 
-    filter: Option<Arc<dyn Filter>>,
+    filter: Option<Arc<dyn FilterHandler>>,
     pub(crate) endpoint: Option<di::Endpoint>,
     pub(crate) err_handler: Option<Box<dyn ErrorHandler>>,
 }
 
 impl Handler {
     /// Create a new [`HandlerType::NewMessage`] handler.
-    pub fn new_message<F: Filter>(filter: F) -> Self {
+    pub fn new_message<F: FilterHandler>(filter: F) -> Self {
         Self {
             handler_type: HandlerType::NewMessage,
 
@@ -38,7 +38,7 @@ impl Handler {
     }
 
     /// Create a new [`HandlerType::Raw`] handler.
-    pub fn new_update<F: Filter>(filter: F) -> Self {
+    pub fn new_update<F: FilterHandler>(filter: F) -> Self {
         Self {
             handler_type: HandlerType::Raw,
 
@@ -49,7 +49,7 @@ impl Handler {
     }
 
     /// Create a new [`HandlerType::MessageEdited`] handler.
-    pub fn message_edited<F: Filter>(filter: F) -> Self {
+    pub fn message_edited<F: FilterHandler>(filter: F) -> Self {
         Self {
             handler_type: HandlerType::MessageEdited,
 
@@ -60,7 +60,7 @@ impl Handler {
     }
 
     /// Create a new [`HandlerType::MessageDeleted`] handler.
-    pub fn message_deleted<F: Filter>(filter: F) -> Self {
+    pub fn message_deleted<F: FilterHandler>(filter: F) -> Self {
         Self {
             handler_type: HandlerType::MessageDeleted,
 
@@ -71,7 +71,7 @@ impl Handler {
     }
 
     /// Create a new [`HandlerType::CallbackQuery`] handler.
-    pub fn callback_query<F: Filter>(filter: F) -> Self {
+    pub fn callback_query<F: FilterHandler>(filter: F) -> Self {
         Self {
             handler_type: HandlerType::CallbackQuery,
 
@@ -82,7 +82,7 @@ impl Handler {
     }
 
     /// Create a new [`HandlerType::InlineQuery`] handler.
-    pub fn inline_query<F: Filter>(filter: F) -> Self {
+    pub fn inline_query<F: FilterHandler>(filter: F) -> Self {
         Self {
             handler_type: HandlerType::InlineQuery,
 
@@ -154,32 +154,32 @@ pub enum HandlerType {
 }
 
 /// Create a new [`HandlerType::NewMessage`] handler.
-pub fn new_message<F: Filter>(filter: F) -> Handler {
+pub fn new_message<F: FilterHandler>(filter: F) -> Handler {
     Handler::new_message(filter)
 }
 
 /// Create a new [`HandlerType::Raw`] handler.
-pub fn new_update<F: Filter>(filter: F) -> Handler {
+pub fn new_update<F: FilterHandler>(filter: F) -> Handler {
     Handler::new_update(filter)
 }
 
 /// Create a new [`HandlerType::MessageEdited`] handler.
-pub fn message_edited<F: Filter>(filter: F) -> Handler {
+pub fn message_edited<F: FilterHandler>(filter: F) -> Handler {
     Handler::message_edited(filter)
 }
 
 /// Create a new [`HandlerType::MessageDeleted`] handler.
-pub fn message_deleted<F: Filter>(filter: F) -> Handler {
+pub fn message_deleted<F: FilterHandler>(filter: F) -> Handler {
     Handler::message_deleted(filter)
 }
 
 /// Create a new [`HandlerType::CallbackQuery`] handler.
-pub fn callback_query<F: Filter>(filter: F) -> Handler {
+pub fn callback_query<F: FilterHandler>(filter: F) -> Handler {
     Handler::callback_query(filter)
 }
 
 /// Create a new [`HandlerType::InlineQuery`] handler.
-pub fn inline_query<F: Filter>(filter: F) -> Handler {
+pub fn inline_query<F: FilterHandler>(filter: F) -> Handler {
     Handler::inline_query(filter)
 }
 

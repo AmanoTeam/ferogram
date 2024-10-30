@@ -12,7 +12,7 @@ use std::{net::SocketAddr, path::Path, sync::Arc};
 
 use grammers_client::{session::Session, Config, InitParams, ReconnectionPolicy, SignInError};
 
-use crate::{utils::prompt, Dispatcher, ErrorHandler, Result};
+use crate::{di, utils::prompt, Dispatcher, ErrorHandler, FilterHandler, Result};
 
 /// Wrapper about grammers' `Client` instance.
 pub struct Client {
@@ -26,6 +26,7 @@ pub struct Client {
     wait_for_ctrl_c: bool,
 
     pub(crate) err_handler: Option<Box<dyn ErrorHandler>>,
+    pub(crate) ready_handler: Option<di::Endpoint>,
 }
 
 impl Client {
@@ -132,8 +133,16 @@ impl Client {
         let handle = self.inner_client;
         let dispatcher = Arc::new(self.dispatcher);
         let err_handler = self.err_handler;
+        let ready_handler = self.ready_handler;
 
         tokio::task::spawn(async move {
+            if let Some(mut handler) = ready_handler {
+                let mut injector = di::Injector::default();
+                injector.insert(handle.clone());
+
+                handler.handle(&mut injector).await.unwrap();
+            }
+
             loop {
                 match handle.next_update().await {
                     Ok(update) => {
@@ -199,6 +208,7 @@ pub struct ClientBuilder {
     wait_for_ctrl_c: bool,
 
     pub(crate) err_handler: Option<Box<dyn ErrorHandler>>,
+    pub(crate) ready_handler: Option<di::Endpoint>,
 }
 
 impl ClientBuilder {
@@ -243,6 +253,7 @@ impl ClientBuilder {
             wait_for_ctrl_c: self.wait_for_ctrl_c,
 
             err_handler: self.err_handler,
+            ready_handler: self.ready_handler,
         })
     }
 
@@ -379,6 +390,17 @@ impl ClientBuilder {
     /// Executed when any `handler` returns an error.
     pub fn on_err<H: ErrorHandler>(mut self, handler: H) -> Self {
         self.err_handler = Some(Box::new(handler));
+        self
+    }
+
+    /// Set the ready handler.
+    ///
+    /// Executed when the client is ready to receive updates.
+    pub fn on_ready<I, H: di::Handler>(
+        mut self,
+        handler: impl di::IntoHandler<I, Handler = H>,
+    ) -> Self {
+        self.ready_handler = Some(Box::new(handler.into_handler()));
         self
     }
 

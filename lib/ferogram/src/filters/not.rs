@@ -11,14 +11,14 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use grammers_client::{Client, Update};
 
-use crate::{Filter, Flow};
+use crate::{FilterHandler, Flow};
 
 pub struct Not {
-    pub(crate) filter: Arc<dyn Filter>,
+    pub(crate) filter: Arc<dyn FilterHandler>,
 }
 
 #[async_trait]
-impl Filter for Not {
+impl FilterHandler for Not {
     async fn check(&self, client: Client, update: Update) -> Flow {
         self.filter
             .check(client.clone(), update.clone())
