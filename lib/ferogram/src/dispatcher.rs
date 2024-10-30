@@ -17,6 +17,7 @@ use crate::{di, Result, Router};
 #[derive(Clone, Default)]
 pub struct Dispatcher {
     routers: Arc<Mutex<Vec<Router>>>,
+    injector: di::Injector,
 }
 
 impl Dispatcher {
@@ -29,26 +30,34 @@ impl Dispatcher {
         self
     }
 
+    /// Attach a injector.
+    pub fn resources<D: FnOnce(di::Injector) -> di::Injector>(mut self, injector: D) -> Self {
+        let mut injector = injector(di::Injector::default());
+        self.injector.extend(&mut injector);
+
+        self
+    }
+
+    /// Attach a injector.
+    ///
+    /// Same as `resources`.
+    pub fn dependencies<D: FnOnce(di::Injector) -> di::Injector>(self, injector: D) -> Self {
+        self.resources(injector)
+    }
+
     /// Handle the update sent by Telegram.
     pub(crate) async fn handle_update(&self, client: &Client, update: &Update) -> Result<()> {
         let mut routers = self.routers.lock().await;
-        let mut main_injector = None;
+
+        let mut injector = di::Injector::default();
+        injector.insert(client.clone());
+        injector.insert(update.clone());
+        injector.extend(&mut self.injector.clone());
 
         for router in routers.iter_mut() {
-            if main_injector.is_none() {
-                let mut injector = di::Injector::new();
-                injector.insert(client.clone());
-                injector.insert(update.clone());
-
-                main_injector = Some(injector);
-            }
-
-            match router
-                .handle_update(client, update, main_injector.unwrap())
-                .await
-            {
-                Ok(None) => return Ok(()),
-                Ok(injector) => main_injector = injector,
+            match router.handle_update(client, update, &mut injector).await {
+                Ok(false) => continue,
+                Ok(true) => return Ok(()),
                 Err(e) => return Err(e),
             }
         }

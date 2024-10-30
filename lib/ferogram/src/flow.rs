@@ -13,6 +13,7 @@ use tokio::sync::Mutex;
 use crate::{di::Injector, Result};
 
 /// Represents the control flow of a handler's filter and its endpoint.
+#[derive(Default)]
 pub struct Flow {
     action: Action,
     pub(crate) injector: Arc<Mutex<Injector>>,
@@ -42,15 +43,6 @@ impl Flow {
     /// Check if the current action is `Continue`.
     pub fn is_continue(&self) -> bool {
         matches!(self.action, Action::Continue)
-    }
-}
-
-impl Default for Flow {
-    fn default() -> Self {
-        Self {
-            action: Action::default(),
-            injector: Arc::new(Mutex::new(Injector::new())),
-        }
     }
 }
 

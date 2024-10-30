@@ -18,8 +18,8 @@ pub struct Handler {
     handler_type: HandlerType,
 
     filter: Option<Arc<dyn Filter>>,
-    pub(crate) err_handler: Option<Box<dyn ErrorHandler>>,
     pub(crate) endpoint: Option<di::Endpoint>,
+    pub(crate) err_handler: Option<Box<dyn ErrorHandler>>,
 }
 
 impl Handler {
@@ -29,8 +29,8 @@ impl Handler {
             handler_type: HandlerType::NewMessage,
 
             filter: Some(Arc::new(filter)),
-            err_handler: None,
             endpoint: None,
+            err_handler: None,
         }
     }
 
@@ -40,8 +40,8 @@ impl Handler {
             handler_type: HandlerType::Raw,
 
             filter: Some(Arc::new(filter)),
-            err_handler: None,
             endpoint: None,
+            err_handler: None,
         }
     }
 
@@ -51,8 +51,8 @@ impl Handler {
             handler_type: HandlerType::MessageEdited,
 
             filter: Some(Arc::new(filter)),
-            err_handler: None,
             endpoint: None,
+            err_handler: None,
         }
     }
 
@@ -62,8 +62,8 @@ impl Handler {
             handler_type: HandlerType::MessageDeleted,
 
             filter: Some(Arc::new(filter)),
-            err_handler: None,
             endpoint: None,
+            err_handler: None,
         }
     }
 
@@ -73,8 +73,8 @@ impl Handler {
             handler_type: HandlerType::CallbackQuery,
 
             filter: Some(Arc::new(filter)),
-            err_handler: None,
             endpoint: None,
+            err_handler: None,
         }
     }
 
@@ -84,8 +84,8 @@ impl Handler {
             handler_type: HandlerType::InlineQuery,
 
             filter: Some(Arc::new(filter)),
-            err_handler: None,
             endpoint: None,
+            err_handler: None,
         }
     }
 
@@ -135,11 +135,17 @@ impl Handler {
 /// Handler type.
 #[derive(Clone, Default, PartialEq)]
 pub enum HandlerType {
+    /// New message handler.
     NewMessage,
+    /// Message edited handler.
     MessageEdited,
+    /// Message deleted handler.
     MessageDeleted,
+    /// Callback query handler.
     CallbackQuery,
+    /// Inline query handler.
     InlineQuery,
+    /// Raw update handler.
     #[default]
     Raw,
 }
@@ -180,7 +186,7 @@ pub fn then<I, H: di::Handler>(endpoint: impl di::IntoHandler<I, Handler = H>) -
         handler_type: HandlerType::Raw,
 
         filter: None,
-        err_handler: None,
         endpoint: Some(Box::new(endpoint.into_handler())),
+        err_handler: None,
     }
 }

@@ -9,10 +9,7 @@
 use async_recursion::async_recursion;
 use grammers_client::Update;
 
-use crate::{
-    di::{self, Injector},
-    Handler, Result,
-};
+use crate::{di::Injector, Handler, Result};
 
 /// Dispatcher's router
 #[derive(Clone, Default)]
@@ -41,21 +38,18 @@ impl Router {
         &mut self,
         client: &grammers_client::Client,
         update: &Update,
-        mut main_injector: Injector,
-    ) -> Result<Option<Injector>> {
+        injector: &mut Injector,
+    ) -> Result<bool> {
         for handler in self.handlers.iter_mut() {
             let flow = handler.check(&client, &update).await;
-            let mut injector = di::Injector::new();
-
-            injector.extend(&mut main_injector);
 
             if flow.is_continue() {
-                let mut flow_injector = flow.injector.lock().await;
-                injector.extend(&mut flow_injector);
+                let mut handler_injector = flow.injector.lock().await;
+                injector.extend(&mut handler_injector);
 
                 if let Some(endpoint) = handler.endpoint.as_mut() {
-                    match endpoint.handle(&mut injector).await {
-                        Ok(()) => return Ok(None),
+                    match endpoint.handle(injector).await {
+                        Ok(()) => return Ok(true),
                         Err(e) => {
                             if let Some(err_filter) = handler.err_handler.as_mut() {
                                 let flow = err_filter.run(client.clone(), update.clone(), e).await;
@@ -64,10 +58,10 @@ impl Router {
                                     let mut flow_injector = flow.injector.lock().await;
                                     injector.extend(&mut flow_injector);
 
-                                    return endpoint.handle(&mut injector).await.map(|_| None);
+                                    return endpoint.handle(injector).await.map(|_| true);
                                 }
 
-                                return Ok(None);
+                                return Ok(true);
                             }
 
                             return Err(e);
@@ -75,19 +69,17 @@ impl Router {
                     }
                 }
             }
-
-            main_injector = injector;
         }
 
         for router in self.routers.iter_mut() {
-            match router.handle_update(client, update, main_injector).await {
-                r @ Ok(None) => return r,
-                Ok(Some(injector)) => main_injector = injector,
+            match router.handle_update(client, update, injector).await {
+                Ok(false) => continue,
+                r @ Ok(true) => return r,
                 Err(e) => return Err(e),
             }
         }
 
-        Ok(None)
+        Ok(false)
     }
 }
 

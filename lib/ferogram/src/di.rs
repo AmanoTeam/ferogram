@@ -11,6 +11,7 @@ use std::{
     any::{Any, TypeId},
     collections::{hash_map::Entry, HashMap},
     marker::PhantomData,
+    sync::Arc,
 };
 
 use async_trait::async_trait;
@@ -25,18 +26,12 @@ pub type Endpoint = Box<dyn Handler>;
 /// Dependency injector.
 ///
 /// Used to inject dependencies into handlers.
+#[derive(Clone, Default)]
 pub struct Injector {
-    resources: HashMap<TypeId, Vec<Box<dyn Any + Send + Sync>>>,
+    resources: HashMap<TypeId, Vec<Resource>>,
 }
 
 impl Injector {
-    /// Create a new `Injector`.
-    pub fn new() -> Self {
-        Self {
-            resources: HashMap::new(),
-        }
-    }
-
     /// Count of resources stored.
     pub fn len(&self) -> usize {
         self.resources.len()
@@ -47,10 +42,10 @@ impl Injector {
         self.resources
             .entry(TypeId::of::<R>())
             .or_insert_with(Vec::new)
-            .push(Box::new(value));
+            .push(Resource::new(value));
     }
 
-    /// Extend the resources.
+    /// Extend the resources with the resources of another injector.
     pub fn extend(&mut self, other: &mut Self) {
         for (type_id, values) in other.resources.drain() {
             self.resources
@@ -61,19 +56,29 @@ impl Injector {
     }
 
     /// Remove a resource.
-    pub fn take<R: Send + Sync + 'static>(&mut self) -> Option<R> {
+    pub fn take<R: Send + Sync + 'static>(&mut self) -> Option<Arc<R>> {
         match self.resources.entry(TypeId::of::<R>()) {
-            Entry::Occupied(mut e) => e.get_mut().pop().unwrap().downcast().ok().map(|r| *r),
+            Entry::Occupied(mut e) => e.get_mut().pop().unwrap().value.downcast().ok(),
             Entry::Vacant(_) => None,
         }
     }
+}
 
-    /// Get a resource.
-    pub fn get<R: Send + Sync + 'static>(&self) -> Option<&R> {
-        self.resources
-            .get(&TypeId::of::<R>())
-            .and_then(|v| v.last())
-            .and_then(|v| v.downcast_ref::<R>())
+/// A resource.
+#[allow(dead_code)]
+#[derive(Clone)]
+pub struct Resource {
+    type_name: &'static str,
+    value: Arc<dyn Any + Send + Sync>,
+}
+
+impl Resource {
+    /// Create a new injectable resource.
+    pub fn new<T: Send + Sync + 'static>(value: T) -> Self {
+        Self {
+            type_name: std::any::type_name::<T>(),
+            value: Arc::new(value),
+        }
     }
 }
 
@@ -99,10 +104,11 @@ macro_rules! impl_handler {
             #[allow(unused_variables)]
             async fn handle(&mut self, injector: &mut Injector) -> Result<()> {
                 $(
-                    let $params = match injector.take::<$params>() {
+                    let $params = std::borrow::Borrow::<$params>::borrow(&match injector.take::<$params>() {
                         Some(value) => value,
                         None => return Err(format!("Missing dependency: {:?}", stringify!($params)).into()),
-                    };
+                    })
+                    .clone();
                 )*
 
                 (self.f)($($params),*).await
