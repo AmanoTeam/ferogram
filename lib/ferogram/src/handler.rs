@@ -8,8 +8,6 @@
 
 //! Handler module.
 
-use std::sync::Arc;
-
 use grammers_client::{Client, Update};
 
 use crate::{di, flow, ErrorHandler, Filter, Flow};
@@ -20,7 +18,7 @@ use crate::{di, flow, ErrorHandler, Filter, Flow};
 pub struct Handler {
     update_type: UpdateType,
 
-    filter: Option<Arc<dyn Filter>>,
+    filter: Option<Box<dyn Filter>>,
     pub(crate) endpoint: Option<di::Endpoint>,
     pub(crate) err_handler: Option<Box<dyn ErrorHandler>>,
 }
@@ -31,7 +29,7 @@ impl Handler {
         Self {
             update_type: UpdateType::NewMessage,
 
-            filter: Some(Arc::new(filter)),
+            filter: Some(Box::new(filter)),
             endpoint: None,
             err_handler: None,
         }
@@ -42,7 +40,7 @@ impl Handler {
         Self {
             update_type: UpdateType::Raw,
 
-            filter: Some(Arc::new(filter)),
+            filter: Some(Box::new(filter)),
             endpoint: None,
             err_handler: None,
         }
@@ -53,7 +51,7 @@ impl Handler {
         Self {
             update_type: UpdateType::MessageEdited,
 
-            filter: Some(Arc::new(filter)),
+            filter: Some(Box::new(filter)),
             endpoint: None,
             err_handler: None,
         }
@@ -64,7 +62,7 @@ impl Handler {
         Self {
             update_type: UpdateType::MessageDeleted,
 
-            filter: Some(Arc::new(filter)),
+            filter: Some(Box::new(filter)),
             endpoint: None,
             err_handler: None,
         }
@@ -75,7 +73,7 @@ impl Handler {
         Self {
             update_type: UpdateType::CallbackQuery,
 
-            filter: Some(Arc::new(filter)),
+            filter: Some(Box::new(filter)),
             endpoint: None,
             err_handler: None,
         }
@@ -86,7 +84,7 @@ impl Handler {
         Self {
             update_type: UpdateType::InlineQuery,
 
-            filter: Some(Arc::new(filter)),
+            filter: Some(Box::new(filter)),
             endpoint: None,
             err_handler: None,
         }
@@ -114,9 +112,9 @@ impl Handler {
     }
 
     /// Check if the update should be handled.
-    pub(crate) async fn check(&self, client: &Client, update: &Update) -> Flow {
+    pub(crate) async fn check(&mut self, client: &Client, update: &Update) -> Flow {
         if *update == self.update_type {
-            if let Some(filter) = &self.filter {
+            if let Some(ref mut filter) = self.filter {
                 return filter.check(client.clone(), update.clone()).await;
             }
         }

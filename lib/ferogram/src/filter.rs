@@ -23,7 +23,7 @@ use crate::{flow, Flow};
 #[async_trait]
 pub trait Filter: Send + Sync + 'static {
     /// Check if the update should be handled.
-    async fn check(&self, client: Client, update: Update) -> Flow;
+    async fn check(&mut self, client: Client, update: Update) -> Flow;
 
     /// Wrappers `self` and `second` into [`And`] filter.
     fn and<S: Filter>(self, second: S) -> And
@@ -31,8 +31,8 @@ pub trait Filter: Send + Sync + 'static {
         Self: Sized,
     {
         And {
-            first: Arc::new(self),
-            second: Arc::new(second),
+            first: Box::new(self),
+            second: Box::new(second),
         }
     }
 
@@ -42,8 +42,8 @@ pub trait Filter: Send + Sync + 'static {
         Self: Sized,
     {
         Or {
-            first: Arc::new(self),
-            other: Arc::new(other),
+            first: Box::new(self),
+            other: Box::new(other),
         }
     }
 
@@ -53,7 +53,7 @@ pub trait Filter: Send + Sync + 'static {
         Self: Sized,
     {
         Not {
-            filter: Arc::new(self),
+            filter: Box::new(self),
         }
     }
 }
@@ -64,7 +64,7 @@ where
     T: Fn(Client, Update) -> F + Send + Sync + 'static,
     F: Future<Output = O> + Send + Sync + 'static,
 {
-    async fn check(&self, client: Client, update: Update) -> Flow {
+    async fn check(&mut self, client: Client, update: Update) -> Flow {
         match self(client, update).await.try_into() {
             Ok(flow) => flow,
             Err(_) => flow::break_now(),
@@ -78,7 +78,7 @@ where
     T: Fn(Client, Update) -> F + Send + Sync + 'static,
     F: Future<Output = O> + Send + Sync + 'static,
 {
-    async fn check(&self, client: Client, update: Update) -> Flow {
+    async fn check(&mut self, client: Client, update: Update) -> Flow {
         match self(client, update).await.try_into() {
             Ok(flow) => flow,
             Err(_) => flow::break_now(),

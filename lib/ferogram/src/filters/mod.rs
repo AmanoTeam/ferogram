@@ -22,6 +22,7 @@ use grammers_client::{
 };
 pub(crate) use not::Not;
 pub(crate) use or::Or;
+use tokio::sync::Mutex;
 
 use crate::{flow, Filter, Flow};
 
@@ -47,9 +48,7 @@ pub fn and<F: Filter, S: Filter>(first: F, second: S) -> impl Filter {
 
 /// Pass if `filter` don't pass.
 pub fn not<F: Filter>(filter: F) -> impl Filter {
-    Not {
-        filter: Arc::new(filter),
-    }
+    filter.not()
 }
 
 /// Pass if the message contains the specified text.
@@ -64,6 +63,7 @@ pub fn text(pat: &'static str) -> impl Filter {
     })
 }
 
+/// Pass if the message text or query data matches the specified pattern.
 pub fn regex(pat: &'static str) -> impl Filter {
     Arc::new(move |_client, update| async move {
         match update {
@@ -80,18 +80,26 @@ pub fn regex(pat: &'static str) -> impl Filter {
 }
 
 /// Pass if the message matches the specified command.
+///
+/// This filter is a custom [`regex`] filter, so it accepts regex syntax.
 pub fn command(pat: &'static str) -> impl Filter {
     Command {
         prefixes: vec!["/".to_string(), "!".to_string()],
         command: pat.to_string(),
+
+        username: Arc::new(Mutex::new(None)),
     }
 }
 
 /// Pass if the message matches the specified command with custom prefixes.
+///
+/// This filter is a custom [`regex`] filter, so it accepts regex syntax.
 pub fn command_with(pre: &'static [&'static str], pat: &'static str) -> impl Filter {
     Command {
         prefixes: pre.into_iter().map(|p| p.to_string()).collect(),
         command: pat.to_string(),
+
+        username: Arc::new(Mutex::new(None)),
     }
 }
 
