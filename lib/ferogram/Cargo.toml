@@ -6,8 +6,8 @@ license = "MIT OR Apache-2.0"
 description = """
 Ferogram is a simple telegram bot framework written in Rust.
 """
-homepage = "https://github.com/AndrielFR/ferogram"
-repository = "https://github.com/AndrielFR/ferogram"
+homepage = "https://github.com/AmanoTeam/ferogram"
+repository = "https://github.com/AmanoTeam/ferogram"
 keywords = ["telegram", "bot", "framework", "grammers"]
 edition = "2021"
 
