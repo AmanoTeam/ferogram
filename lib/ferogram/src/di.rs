@@ -66,7 +66,7 @@ impl Injector {
     /// Remove a resource.
     pub fn take<R: Send + Sync + 'static>(&mut self) -> Option<Arc<R>> {
         match self.resources.entry(TypeId::of::<R>()) {
-            Entry::Occupied(mut e) => e.get_mut().pop().unwrap().value.downcast().ok(),
+            Entry::Occupied(mut e) => e.get_mut().pop().unwrap().to(),
             Entry::Vacant(_) => None,
         }
     }
@@ -76,7 +76,7 @@ impl Injector {
         self.resources
             .get(&TypeId::of::<R>())
             .and_then(|values| values.last())
-            .and_then(|resource| resource.value.downcast_ref())
+            .and_then(|resource| resource.to_ref())
     }
 }
 
@@ -85,7 +85,7 @@ impl Injector {
 #[derive(Clone)]
 pub struct Resource {
     type_name: &'static str,
-    value: Arc<dyn Any + Send + Sync>,
+    value: Value,
 }
 
 impl Resource {
@@ -96,7 +96,40 @@ impl Resource {
             value: Arc::new(value),
         }
     }
+
+    /// Downcast the resource.
+    pub fn to<T: Send + Sync + 'static>(self) -> Option<Arc<T>> {
+        self.value.downcast().ok()
+    }
+
+    /// Downcast the resource to a reference.
+    pub fn to_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
+        self.value.downcast_ref()
+    }
+
+    /// Get the value of the resource.
+    pub fn to_any(&self) -> Value {
+        self.value.clone()
+    }
+
+    /// Get the value of the resource.
+    pub fn value(&self) -> &dyn Any {
+        &*self.value
+    }
+
+    /// Get the type id of the resource.
+    pub fn type_id(&self) -> TypeId {
+        self.value.type_id()
+    }
+
+    /// Get the type name of the resource.
+    pub fn type_name(&self) -> &'static str {
+        self.type_name
+    }
 }
+
+/// A resource value.
+pub type Value = Arc<dyn Any + Send + Sync>;
 
 #[async_trait]
 /// Handler trait.

@@ -31,12 +31,12 @@ pub struct Client {
 }
 
 impl Client {
-    /// Create a new bot `Client` instance.
+    /// Create a new bot instance.
     pub fn bot<T: Into<String>>(token: T) -> ClientBuilder {
         ClientBuilder::bot(token)
     }
 
-    /// Create a new user `Client` instance.
+    /// Create a new user instance.
     pub fn user<N: Into<String>>(phone_number: N) -> ClientBuilder {
         ClientBuilder::user(phone_number)
     }
@@ -223,7 +223,7 @@ pub struct ClientBuilder {
 }
 
 impl ClientBuilder {
-    /// Create a new builder to bot `Client` instance.
+    /// Create a new builder to bot instance.
     pub fn bot<T: Into<String>>(token: T) -> Self {
         Self {
             client_type: ClientType::Bot(token.into()),
@@ -232,7 +232,7 @@ impl ClientBuilder {
         }
     }
 
-    /// Create a new builder to user `Client` instance.
+    /// Create a new builder to user instance.
     pub fn user<N: Into<String>>(phone_number: N) -> Self {
         Self {
             client_type: ClientType::User(phone_number.into()),
