@@ -77,7 +77,7 @@ impl Client {
             return Err("Client is already connected.".into());
         }
 
-        let session_file = &self.session_file.as_deref().unwrap_or("./ferogram.session");
+        let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
 
         let client = &self.inner_client;
         if !client.is_authorized().await? {
@@ -116,6 +116,11 @@ impl Client {
         self.is_connected = true;
 
         Ok(self)
+    }
+
+    /// Get the inner grammers' `Client` instance.
+    pub fn inner(&self) -> &grammers_client::Client {
+        &self.inner_client
     }
 
     /// Configure the dispatcher.
@@ -178,10 +183,13 @@ impl Client {
 
             if let Some(mut handler) = self.exit_handler {
                 let mut injector = di::Injector::default();
-                injector.insert(client);
+                injector.insert(client.clone());
 
                 handler.handle(&mut injector).await.unwrap();
             }
+
+            let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
+            client.session().save_to_file(session_file)?;
         }
 
         Ok(())
@@ -430,6 +438,8 @@ impl ClientBuilder {
 
     /// Set the ready handler.
     ///
+    /// Only is called when the client is runned by `run()`.
+    ///
     /// Executed when the client is ready to receive updates.
     pub fn on_ready<I, H: di::Handler>(
         mut self,
@@ -468,7 +478,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(client.inner_client.is_authorized().await.unwrap(), true);
+        assert_eq!(client.is_connected(), true);
     }
 
     #[tokio::test]
@@ -480,6 +490,6 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(client.inner_client.is_authorized().await.unwrap(), true);
+        assert_eq!(client.is_connected(), true);
     }
 }

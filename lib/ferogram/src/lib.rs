@@ -12,7 +12,7 @@
 //!
 //! The main module of the library.
 
-pub mod client;
+mod client;
 pub(crate) mod di;
 mod dispatcher;
 mod error_handler;
@@ -23,12 +23,11 @@ pub mod handler;
 mod router;
 pub mod utils;
 
-pub use client::Client;
+pub use client::{Client, ClientBuilder as Builder};
 pub use dispatcher::Dispatcher;
 pub use error_handler::Error;
 pub(crate) use error_handler::ErrorHandler;
-pub use filter::FilterHandler;
-pub use flow::Action;
+pub use filter::Filter;
 pub(crate) use flow::Flow;
 pub(crate) use handler::Handler;
 pub use router::Router;
@@ -62,5 +61,5 @@ pub mod prelude {
     };
 }
 
-/// std [`Result`] with [`error_handler::Error`].
+/// std [`Result`] with [`Error`].
 pub type Result<T> = std::result::Result<T, Error>;

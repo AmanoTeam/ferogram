@@ -21,7 +21,7 @@ use grammers_client::{
 pub(crate) use not::Not;
 pub(crate) use or::Or;
 
-use crate::{flow, FilterHandler, Flow};
+use crate::{flow, Filter, Flow};
 
 /// Always pass.
 pub async fn always(_: Client, _: Update) -> bool {
@@ -34,24 +34,24 @@ pub async fn never(_: Client, _: Update) -> bool {
 }
 
 /// Pass if `first` or `other` pass.
-pub fn or<F: FilterHandler, O: FilterHandler>(first: F, other: O) -> impl FilterHandler {
+pub fn or<F: Filter, O: Filter>(first: F, other: O) -> impl Filter {
     first.or(other)
 }
 
 /// Pass if `first` and `second` pass.
-pub fn and<F: FilterHandler, S: FilterHandler>(first: F, second: S) -> impl FilterHandler {
+pub fn and<F: Filter, S: Filter>(first: F, second: S) -> impl Filter {
     first.and(second)
 }
 
 /// Pass if `filter` don't pass.
-pub fn not<F: FilterHandler>(filter: F) -> impl FilterHandler {
+pub fn not<F: Filter>(filter: F) -> impl Filter {
     Not {
         filter: Arc::new(filter),
     }
 }
 
 /// Pass if the message contains the specified text.
-pub fn text(pat: &'static str) -> impl FilterHandler {
+pub fn text(pat: &'static str) -> impl Filter {
     Arc::new(move |_client, update| async move {
         match update {
             Update::NewMessage(message) | Update::MessageEdited(message) => {
@@ -358,7 +358,7 @@ pub async fn channel(_: Client, update: Update) -> Flow {
 /// Pass if the chat id is the specified id.
 ///
 /// Injects `Chat`: chat.
-pub fn id(id: i64) -> impl FilterHandler {
+pub fn id(id: i64) -> impl Filter {
     Arc::new(move |_, update| async move {
         match update {
             Update::NewMessage(message) | Update::MessageEdited(message) => {
@@ -389,7 +389,7 @@ pub fn id(id: i64) -> impl FilterHandler {
 /// The username cannot contain the "@" prefix.
 ///
 /// Injects `Chat`: chat.
-pub fn username(username: &'static str) -> impl FilterHandler {
+pub fn username(username: &'static str) -> impl Filter {
     Arc::new(move |_, update| async move {
         match update {
             Update::NewMessage(message) | Update::MessageEdited(message) => {
@@ -433,7 +433,7 @@ pub fn username(username: &'static str) -> impl FilterHandler {
 /// The usernames cannot contain the "@" prefix.
 ///
 /// Injects `Chat`: chat.
-pub fn usernames(usernames: &'static [&'static str]) -> impl FilterHandler {
+pub fn usernames(usernames: &'static [&'static str]) -> impl Filter {
     Arc::new(move |_, update| async move {
         match update {
             Update::NewMessage(message) | Update::MessageEdited(message) => {
@@ -502,7 +502,7 @@ pub async fn reply(_: Client, update: Update) -> Flow {
 /// Pass if the message is a reply and contains the specified text.
 ///
 /// Injects `Message`: reply message.
-pub fn reply_text(pat: &'static str) -> impl FilterHandler {
+pub fn reply_text(pat: &'static str) -> impl Filter {
     Arc::new(move |_, update| async move {
         match update {
             Update::NewMessage(message) | Update::MessageEdited(message) => {
