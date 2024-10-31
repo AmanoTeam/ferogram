@@ -19,6 +19,7 @@ ferogram-macros = { path = "../ferogram-macros", optional = true }
 grammers-client = { git = "https://github.com/Lonami/grammers" }
 
 log = "*"
+regex = "1"
 tokio = { version = "1", features = ["fs", "rt", "signal"] }
 futures = { version = "*", default-features = false, features = ["alloc"] }
 rpassword = "7"

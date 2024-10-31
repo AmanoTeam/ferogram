@@ -7,12 +7,14 @@
 // except according to those terms.
 
 mod and;
+mod command;
 mod not;
 mod or;
 
 use std::sync::Arc;
 
 pub(crate) use and::And;
+use command::Command;
 use grammers_client::{
     grammers_tl_types as tl,
     types::{Chat, Media},
@@ -60,6 +62,37 @@ pub fn text(pat: &'static str) -> impl Filter {
             _ => false,
         }
     })
+}
+
+pub fn regex(pat: &'static str) -> impl Filter {
+    Arc::new(move |_client, update| async move {
+        match update {
+            Update::NewMessage(message) | Update::MessageEdited(message) => {
+                regex::Regex::new(pat).unwrap().is_match(message.text())
+            }
+            Update::CallbackQuery(query) => regex::bytes::Regex::new(pat)
+                .unwrap()
+                .is_match(query.data()),
+            Update::InlineQuery(query) => regex::Regex::new(pat).unwrap().is_match(query.text()),
+            _ => false,
+        }
+    })
+}
+
+/// Pass if the message matches the specified command.
+pub fn command(pat: &'static str) -> impl Filter {
+    Command {
+        prefixes: vec!["/".to_string(), "!".to_string()],
+        command: pat.to_string(),
+    }
+}
+
+/// Pass if the message matches the specified command with custom prefixes.
+pub fn command_with(pre: &'static [&'static str], pat: &'static str) -> impl Filter {
+    Command {
+        prefixes: pre.into_iter().map(|p| p.to_string()).collect(),
+        command: pat.to_string(),
+    }
 }
 
 /// Pass if the message has a poll.
