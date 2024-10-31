@@ -50,10 +50,6 @@ impl Filter for Command {
             pat = format!(r"{0}({1}$|{1}\s)", pre_pat, pat);
         }
 
-        // let pat = format!(r"^[{0}]({1}$|{1}\s)", self.prefixes.join("|"), pat);
-
-        println!("{}", pat);
-
         match update {
             Update::NewMessage(message) | Update::MessageEdited(message) => {
                 regex::Regex::new(&pat).unwrap().is_match(message.text())

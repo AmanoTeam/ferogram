@@ -24,6 +24,7 @@ mod router;
 pub mod utils;
 
 pub use client::{Client, ClientBuilder as Builder};
+pub use di::Injector;
 pub use dispatcher::Dispatcher;
 pub use error_handler::Error;
 pub(crate) use error_handler::ErrorHandler;
@@ -31,8 +32,6 @@ pub use filter::Filter;
 pub(crate) use flow::Flow;
 pub(crate) use handler::Handler;
 pub use router::Router;
-
-pub use grammers_client as grammers;
 
 #[cfg(feature = "macros")]
 #[allow(unused_imports)]
