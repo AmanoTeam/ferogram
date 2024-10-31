@@ -12,7 +12,7 @@ use std::{net::SocketAddr, path::Path, sync::Arc};
 
 use grammers_client::{session::Session, Config, InitParams, ReconnectionPolicy, SignInError};
 
-use crate::{di, utils::prompt, Dispatcher, ErrorHandler, FilterHandler, Result};
+use crate::{di, utils::prompt, Dispatcher, ErrorHandler, Result};
 
 /// Wrapper about grammers' `Client` instance.
 pub struct Client {
@@ -26,6 +26,7 @@ pub struct Client {
     wait_for_ctrl_c: bool,
 
     pub(crate) err_handler: Option<Box<dyn ErrorHandler>>,
+    pub(crate) exit_handler: Option<di::Endpoint>,
     pub(crate) ready_handler: Option<di::Endpoint>,
 }
 
@@ -135,6 +136,8 @@ impl Client {
         let err_handler = self.err_handler;
         let ready_handler = self.ready_handler;
 
+        let client = handle.clone();
+
         tokio::task::spawn(async move {
             if let Some(mut handler) = ready_handler {
                 let mut injector = di::Injector::default();
@@ -172,6 +175,13 @@ impl Client {
 
         if self.wait_for_ctrl_c {
             tokio::signal::ctrl_c().await?;
+
+            if let Some(mut handler) = self.exit_handler {
+                let mut injector = di::Injector::default();
+                injector.insert(client);
+
+                handler.handle(&mut injector).await.unwrap();
+            }
         }
 
         Ok(())
@@ -179,11 +189,11 @@ impl Client {
 
     /// Keeps the connection open, but doesn't listen to the updates.
     pub async fn keep_alive(self) -> Result<()> {
-        let client = self.inner_client;
+        let handle = self.inner_client;
 
         tokio::task::spawn(async move {
             loop {
-                client.step().await.unwrap();
+                handle.step().await.unwrap();
             }
         });
 
@@ -208,6 +218,7 @@ pub struct ClientBuilder {
     wait_for_ctrl_c: bool,
 
     pub(crate) err_handler: Option<Box<dyn ErrorHandler>>,
+    pub(crate) exit_handler: Option<di::Endpoint>,
     pub(crate) ready_handler: Option<di::Endpoint>,
 }
 
@@ -253,6 +264,7 @@ impl ClientBuilder {
             wait_for_ctrl_c: self.wait_for_ctrl_c,
 
             err_handler: self.err_handler,
+            exit_handler: self.exit_handler,
             ready_handler: self.ready_handler,
         })
     }
@@ -377,11 +389,20 @@ impl ClientBuilder {
         self
     }
 
-    /// Wait for `Ctrl + C` to exit the app.
+    /// Wait for `Ctrl + C` to close the connection and exit the app.
     ///
     /// Otherwise the code will continue running until it finds the end.
     pub fn wait_for_ctrl_c(mut self) -> Self {
         self.wait_for_ctrl_c = true;
+        self
+    }
+
+    /// Set the reconnection policy.
+    ///
+    /// Executed when the client loses the connection or the
+    /// Telegram server closes it.
+    pub fn reconnection_policy<P: ReconnectionPolicy>(mut self, policy: &'static P) -> Self {
+        self.init_params.reconnection_policy = policy;
         self
     }
 
@@ -393,6 +414,20 @@ impl ClientBuilder {
         self
     }
 
+    /// Set the exit handler.
+    ///
+    /// Only is called when used with `wait_for_ctrl_c` and the
+    /// client is runned by `run()`.
+    ///
+    /// Executed when the client is about to exit.
+    pub fn on_exit<I, H: di::Handler>(
+        mut self,
+        handler: impl di::IntoHandler<I, Handler = H>,
+    ) -> Self {
+        self.exit_handler = Some(Box::new(handler.into_handler()));
+        self
+    }
+
     /// Set the ready handler.
     ///
     /// Executed when the client is ready to receive updates.
@@ -401,15 +436,6 @@ impl ClientBuilder {
         handler: impl di::IntoHandler<I, Handler = H>,
     ) -> Self {
         self.ready_handler = Some(Box::new(handler.into_handler()));
-        self
-    }
-
-    /// Set the reconnection policy.
-    ///
-    /// Executed when the client loses the connection or the
-    /// Telegram server closes it.
-    pub fn reconnection_policy<P: ReconnectionPolicy>(mut self, policy: &'static P) -> Self {
-        self.init_params.reconnection_policy = policy;
         self
     }
 }
