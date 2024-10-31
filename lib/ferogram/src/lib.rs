@@ -63,3 +63,17 @@ pub mod prelude {
 
 /// std [`Result`] with [`Error`].
 pub type Result<T> = std::result::Result<T, Error>;
+
+/// Wait for a `Ctrl+C` signal and keep the process alive.
+pub async fn wait_for_ctrl_c() {
+    tokio::signal::ctrl_c()
+        .await
+        .expect("Failed to listen for Ctrl+C signal");
+}
+
+/// Wait for a `Ctrl+C` signal and keep the process alive.
+///
+/// Same as [`wait_for_ctrl_c`].
+pub async fn idle() {
+    wait_for_ctrl_c().await
+}

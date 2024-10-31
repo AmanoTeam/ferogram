@@ -102,9 +102,11 @@ impl Client {
                         Err(SignInError::PasswordRequired(token)) => {
                             let hint = token.hint().unwrap();
                             let password =
-                                prompt(format!("Enter the password (hint {}): ", hint), true)?;
+                                prompt(format!("Enter the password (hint: {}): ", hint), true)?;
 
-                            client.check_password(token, password.trim()).await?;
+                            if let Ok(_) = client.check_password(token, password.trim()).await {
+                                client.session().save_to_file(session_file)?;
+                            }
                         }
                         Err(e) => {
                             panic!("Failed to sign in: {:?}", e);
@@ -397,7 +399,7 @@ impl ClientBuilder {
         self
     }
 
-    /// Wait for `Ctrl + C` to close the connection and exit the app.
+    /// Wait for a `Ctrl + C` signal to close the connection and exit the app.
     ///
     /// Otherwise the code will continue running until it finds the end.
     pub fn wait_for_ctrl_c(mut self) -> Self {
