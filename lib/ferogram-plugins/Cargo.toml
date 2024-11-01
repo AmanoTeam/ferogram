@@ -1,15 +1,15 @@
 [package]
-name = "ferogram-macros"
+name = "ferogram-plugins"
 version = "0.1.0"
 authors = ["Andriel Ferreira <andrielfr@proton.me>"]
 license = "MIT OR Apache-2.0"
 description = """
-A few macros to be used with ferogram.
+A set of resources to create plugins for ferogram.
 """
 homepage = "https://github.com/AmanoTeam/ferogram"
 repository = "https://github.com/AmanoTeam/ferogram"
-keywords = ["telegram", "bot", "framework", "grammers", "macros", "proc-macro"]
+keywords = ["telegram", "bot", "framework", "grammers", "plugins", "libloading"]
 edition = "2021"
 
-[lib]
-proc-macro = true
+[dependencies]
+log = "*"

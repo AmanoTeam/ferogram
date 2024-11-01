@@ -1,6 +1,6 @@
 [package]
 name = "ferogram"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Andriel Ferreira <andrielfr@proton.me>"]
 license = "MIT OR Apache-2.0"
 description = """
@@ -13,9 +13,11 @@ edition = "2021"
 
 [features]
 macros = ["ferogram-macros"]
+plugins = ["ferogram-plugins"]
 
 [dependencies]
 ferogram-macros = { path = "../ferogram-macros", optional = true }
+ferogram-plugins = { path = "../ferogram-plugins", optional = true }
 grammers-client = { git = "https://github.com/Lonami/grammers" }
 
 log = "*"
