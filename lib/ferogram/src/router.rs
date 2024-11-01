@@ -49,6 +49,20 @@ impl Router {
                 let mut handler_injector = flow.injector.lock().await;
                 injector.extend(&mut handler_injector);
 
+                match update.clone() {
+                    Update::NewMessage(message) | Update::MessageEdited(message) => {
+                        injector.insert(Some(message))
+                    }
+                    Update::MessageDeleted(message_deletion) => {
+                        injector.insert(Some(message_deletion))
+                    }
+                    Update::CallbackQuery(query) => injector.insert(Some(query)),
+                    Update::InlineQuery(query) => injector.insert(Some(query)),
+                    Update::InlineSend(inline_send) => injector.insert(Some(inline_send)),
+                    Update::Raw(raw) => injector.insert(Some(raw)),
+                    _ => {}
+                }
+
                 if let Some(endpoint) = handler.endpoint.as_mut() {
                     match endpoint.handle(injector).await {
                         Ok(()) => return Ok(true),

@@ -161,36 +161,50 @@ impl PartialEq<UpdateType> for Update {
 }
 
 /// Create a new [`HandlerType::NewMessage`] handler.
+///
+/// Injects [`Option<Message>`].
 pub fn new_message<F: Filter>(filter: F) -> Handler {
     Handler::new_message(filter)
 }
 
 /// Create a new [`HandlerType::Raw`] handler.
+///
+/// Injects [`Option<Update>`].
 pub fn new_update<F: Filter>(filter: F) -> Handler {
     Handler::new_update(filter)
 }
 
 /// Create a new [`HandlerType::MessageEdited`] handler.
+///
+/// Injects [`Option<Message>`].
 pub fn message_edited<F: Filter>(filter: F) -> Handler {
     Handler::message_edited(filter)
 }
 
 /// Create a new [`HandlerType::MessageDeleted`] handler.
+///
+/// Injects [`Option<MessageDeletion>`].
 pub fn message_deleted<F: Filter>(filter: F) -> Handler {
     Handler::message_deleted(filter)
 }
 
 /// Create a new [`HandlerType::CallbackQuery`] handler.
+///
+/// Injects [`Option<CallbackQuery>`].
 pub fn callback_query<F: Filter>(filter: F) -> Handler {
     Handler::callback_query(filter)
 }
 
 /// Create a new [`HandlerType::InlineQuery`] handler.
+///
+/// Injects [`Option<InlineQuery>`].
 pub fn inline_query<F: Filter>(filter: F) -> Handler {
     Handler::inline_query(filter)
 }
 
 /// Create a new [`HandlerType::Raw`] handler.
+///
+/// Injects [`Option<Update>`].
 pub fn then<I, H: di::Handler>(endpoint: impl di::IntoHandler<I, Handler = H>) -> Handler {
     Handler {
         update_type: UpdateType::Raw,
