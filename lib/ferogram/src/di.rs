@@ -28,7 +28,7 @@ pub type Endpoint = Box<dyn Handler>;
 /// Dependency injector.
 ///
 /// Used to inject dependencies into handlers.
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Injector {
     resources: HashMap<TypeId, Vec<Resource>>,
 }
@@ -82,7 +82,7 @@ impl Injector {
 
 /// A resource.
 #[allow(dead_code)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Resource {
     type_name: &'static str,
     value: Value,

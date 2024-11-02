@@ -113,18 +113,23 @@ impl Handler {
 
     /// Check if the update should be handled.
     pub(crate) async fn check(&mut self, client: &Client, update: &Update) -> Flow {
-        if *update == self.update_type {
+        if self.update_type == *update {
             if let Some(ref mut filter) = self.filter {
-                return filter.check(client.clone(), update.clone()).await;
+                log::warn!("Filter set, checking...");
+                filter.check(client.clone(), update.clone()).await
+            } else {
+                log::warn!("Filter not set, going to endpoint...");
+                flow::continue_now()
             }
+        } else {
+            log::warn!("Update type mismatch, breaking...");
+            flow::break_now()
         }
-
-        flow::continue_now()
     }
 }
 
 /// Update type.
-#[derive(Clone, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub enum UpdateType {
     /// New message handler.
     NewMessage,
@@ -136,6 +141,8 @@ pub enum UpdateType {
     CallbackQuery,
     /// Inline query handler.
     InlineQuery,
+    /// Inline send handler.
+    InlineSend,
     /// Raw update handler.
     #[default]
     Raw,
@@ -149,6 +156,7 @@ impl PartialEq<Update> for UpdateType {
             Self::MessageDeleted => matches!(other, Update::MessageDeleted(_)),
             Self::CallbackQuery => matches!(other, Update::CallbackQuery(_)),
             Self::InlineQuery => matches!(other, Update::InlineQuery(_)),
+            Self::InlineSend => matches!(other, Update::InlineSend(_)),
             Self::Raw => matches!(other, Update::Raw(_)),
         }
     }

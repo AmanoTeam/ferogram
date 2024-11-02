@@ -46,29 +46,41 @@ impl Router {
             let flow = handler.check(&client, &update).await;
 
             if flow.is_continue() {
-                let mut handler_injector = flow.injector.lock().await;
-                injector.extend(&mut handler_injector);
-
-                match update.clone() {
-                    Update::NewMessage(message) | Update::MessageEdited(message) => {
-                        injector.insert(message)
-                    }
-                    Update::MessageDeleted(message_deletion) => injector.insert(message_deletion),
-                    Update::CallbackQuery(query) => injector.insert(query),
-                    Update::InlineQuery(query) => injector.insert(query),
-                    Update::InlineSend(inline_send) => injector.insert(inline_send),
-                    Update::Raw(raw) => injector.insert(raw),
-                    _ => {}
-                }
+                log::warn!("Filter allowed to continue, running endpoint...");
 
                 if let Some(endpoint) = handler.endpoint.as_mut() {
+                    let mut handler_injector = flow.injector.lock().await;
+                    injector.extend(&mut handler_injector);
+
+                    match update.clone() {
+                        Update::NewMessage(message) | Update::MessageEdited(message) => {
+                            injector.insert(message)
+                        }
+                        Update::MessageDeleted(message_deletion) => {
+                            injector.insert(message_deletion)
+                        }
+                        Update::CallbackQuery(query) => injector.insert(query),
+                        Update::InlineQuery(query) => injector.insert(query),
+                        Update::InlineSend(inline_send) => injector.insert(inline_send),
+                        Update::Raw(raw) => injector.insert(raw),
+                        _ => {}
+                    }
+
                     match endpoint.handle(injector).await {
                         Ok(()) => return Ok(true),
                         Err(e) => {
+                            log::error!("Error while handling endpoint: {:?}", e);
+
                             if let Some(err_filter) = handler.err_handler.as_mut() {
+                                log::warn!("Running error filter...");
+
                                 let flow = err_filter.run(client.clone(), update.clone(), e).await;
 
                                 if flow.is_continue() {
+                                    log::warn!(
+                                        "Error filter returned continue, retrying endpoint..."
+                                    );
+
                                     let mut flow_injector = flow.injector.lock().await;
                                     injector.extend(&mut flow_injector);
 
@@ -81,6 +93,8 @@ impl Router {
                             return Err(e);
                         }
                     }
+                } else {
+                    log::warn!("Handler has no endpoint");
                 }
             }
         }

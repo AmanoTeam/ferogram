@@ -15,7 +15,7 @@ use tokio::sync::Mutex;
 use crate::{di::Injector, Result};
 
 /// Represents the control flow of a handler's filter and its endpoint.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Flow {
     action: Action,
     pub(crate) injector: Arc<Mutex<Injector>>,
@@ -83,7 +83,7 @@ impl<T: Clone + Send + Sync + 'static> From<Result<T>> for Flow {
 }
 
 /// Represents the next action will be made onto the handler.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub enum Action {
     Break,
     #[default]
