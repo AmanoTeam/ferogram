@@ -38,7 +38,7 @@ impl Filter for Command {
             pat += &format!("{0}(@{1})?", splitted[0], username.as_deref().unwrap());
         }
 
-        let pre_pat = format!("^[{}]", self.prefixes.join("|"));
+        let pre_pat = format!("^({})(?i)", self.prefixes.join("|"));
         if splitted.len() > 1 {
             pat = format!(
                 r"{0}{1} ({2}$|{2}\s)",
@@ -47,7 +47,7 @@ impl Filter for Command {
                 splitted[1..].join(" ")
             );
         } else {
-            pat = format!(r"{0}({1}$|{1}\s)", pre_pat, pat);
+            pat = format!(r"{0}{1}($|\s)", pre_pat, pat);
         }
 
         match update {
