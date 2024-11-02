@@ -10,7 +10,7 @@
 
 use std::sync::Arc;
 
-use grammers_client::{Client, Update};
+use grammers_client::{types::Chat, Client, Update};
 use tokio::sync::Mutex;
 
 use crate::{di, Result, Router};
@@ -20,6 +20,8 @@ use crate::{di, Result, Router};
 pub struct Dispatcher {
     routers: Arc<Mutex<Vec<Router>>>,
     injector: di::Injector,
+
+    allow_from_self: bool,
 }
 
 impl Dispatcher {
@@ -47,6 +49,12 @@ impl Dispatcher {
         self.resources(injector)
     }
 
+    /// Allow the client to handle updates from itself.
+    pub fn allow_from_self(mut self) -> Self {
+        self.allow_from_self = true;
+        self
+    }
+
     /// Handle the update sent by Telegram.
     pub(crate) async fn handle_update(&self, client: &Client, update: &Update) -> Result<()> {
         let mut routers = self.routers.lock().await;
@@ -55,6 +63,40 @@ impl Dispatcher {
         injector.insert(client.clone());
         injector.insert(update.clone());
         injector.extend(&mut self.injector.clone());
+
+        if !self.allow_from_self {
+            match update {
+                Update::NewMessage(message) | Update::MessageEdited(message) => {
+                    if let Some(Chat::User(user)) = message.sender() {
+                        if user.is_self() {
+                            return Ok(());
+                        }
+                    }
+                }
+                Update::CallbackQuery(query) => {
+                    if let Chat::User(user) = query.sender() {
+                        if user.is_self() {
+                            return Ok(());
+                        }
+                    }
+                }
+                Update::InlineQuery(query) => {
+                    let user = query.sender();
+
+                    if user.is_self() {
+                        return Ok(());
+                    }
+                }
+                Update::InlineSend(inline_send) => {
+                    let user = inline_send.sender();
+
+                    if user.is_self() {
+                        return Ok(());
+                    }
+                }
+                _ => {}
+            };
+        }
 
         for router in routers.iter_mut() {
             match router.handle_update(client, update, &mut injector).await {
