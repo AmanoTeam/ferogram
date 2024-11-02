@@ -93,12 +93,35 @@ pub fn command(pat: &'static str) -> impl Filter {
 
 /// Pass if the message matches the specified command with custom prefixes.
 ///
-/// This filter is a custom [`regex`] filter, so it accepts regex syntax.
+/// This filter is a custom [`regex`] filter, so it accepts a bit of regex syntax.
 pub fn command_with(pre: &'static [&'static str], pat: &'static str) -> impl Filter {
     Command {
         prefixes: pre.into_iter().map(|p| p.to_string()).collect(),
         command: pat.to_owned(),
 
+        username: Arc::new(Mutex::new(None)),
+    }
+}
+
+/// Pass if the message matches any of the specified commands.
+pub fn commands(commands: &'static [&'static str]) -> impl Filter {
+    Command {
+        prefixes: vec!["/".to_owned(), "!".to_owned()],
+        command: commands.join("|"),
+        username: Arc::new(Mutex::new(None)),
+    }
+}
+
+/// Pass if the message matches any of the specified commands with custom prefixes.
+///
+/// This filter is a custom [`regex`] filter, so it accepts a bit of regex syntax.
+pub fn commands_with(
+    pre: &'static [&'static str],
+    commands: &'static [&'static str],
+) -> impl Filter {
+    Command {
+        prefixes: pre.into_iter().map(|p| p.to_string()).collect(),
+        command: commands.join("|"),
         username: Arc::new(Mutex::new(None)),
     }
 }
