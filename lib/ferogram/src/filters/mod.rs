@@ -26,6 +26,9 @@ use tokio::sync::Mutex;
 
 use crate::{flow, Filter, Flow};
 
+/// Default prefixes for commands.
+pub const DEFAULT_PREFIXES: [&str; 2] = ["/", "!"];
+
 /// Always pass.
 pub async fn always(_: Client, _: Update) -> bool {
     true
@@ -49,6 +52,41 @@ pub fn and<F: Filter, S: Filter>(first: F, second: S) -> impl Filter {
 /// Pass if `filter` don't pass.
 pub fn not<F: Filter>(filter: F) -> impl Filter {
     filter.not()
+}
+
+/// Pass if the message is from self.
+pub async fn me(_: Client, update: Update) -> bool {
+    match update {
+        Update::NewMessage(message) | Update::MessageEdited(message) => {
+            let sender = message.sender();
+
+            if let Some(Chat::User(user)) = sender {
+                user.is_self()
+            } else {
+                false
+            }
+        }
+        Update::CallbackQuery(query) => {
+            let sender = query.sender();
+
+            if let Chat::User(user) = sender {
+                user.is_self()
+            } else {
+                false
+            }
+        }
+        Update::InlineQuery(query) => {
+            let sender = query.sender();
+
+            sender.is_self()
+        }
+        Update::InlineSend(inline_send) => {
+            let sender = inline_send.sender();
+
+            sender.is_self()
+        }
+        _ => false,
+    }
 }
 
 /// Pass if the message contains the specified text.
@@ -84,7 +122,7 @@ pub fn regex(pat: &'static str) -> impl Filter {
 /// This filter is a custom [`regex`] filter, so it accepts regex syntax.
 pub fn command(pat: &'static str) -> impl Filter {
     Command {
-        prefixes: vec![r"\/".to_owned(), "!".to_owned()],
+        prefixes: DEFAULT_PREFIXES.into_iter().map(regex::escape).collect(),
         command: pat.to_owned(),
 
         username: Arc::new(Mutex::new(None)),
@@ -94,9 +132,9 @@ pub fn command(pat: &'static str) -> impl Filter {
 /// Pass if the message matches the specified command with custom prefixes.
 ///
 /// This filter is a custom [`regex`] filter, so it accepts a bit of regex syntax.
-pub fn command_with(pre: &'static [&'static str], pat: &'static str) -> impl Filter {
+pub fn command_with(pres: &'static [&'static str], pat: &'static str) -> impl Filter {
     Command {
-        prefixes: pre.into_iter().map(|p| p.to_string()).collect(),
+        prefixes: pres.into_iter().map(|pre| regex::escape(pre)).collect(),
         command: pat.to_owned(),
 
         username: Arc::new(Mutex::new(None)),
@@ -104,10 +142,10 @@ pub fn command_with(pre: &'static [&'static str], pat: &'static str) -> impl Fil
 }
 
 /// Pass if the message matches any of the specified commands.
-pub fn commands(commands: &'static [&'static str]) -> impl Filter {
+pub fn commands(pats: &'static [&'static str]) -> impl Filter {
     Command {
-        prefixes: vec![r"\/".to_owned(), "!".to_owned()],
-        command: commands.join("|"),
+        prefixes: DEFAULT_PREFIXES.into_iter().map(regex::escape).collect(),
+        command: pats.join("|"),
         username: Arc::new(Mutex::new(None)),
     }
 }
@@ -115,13 +153,10 @@ pub fn commands(commands: &'static [&'static str]) -> impl Filter {
 /// Pass if the message matches any of the specified commands with custom prefixes.
 ///
 /// This filter is a custom [`regex`] filter, so it accepts a bit of regex syntax.
-pub fn commands_with(
-    pre: &'static [&'static str],
-    commands: &'static [&'static str],
-) -> impl Filter {
+pub fn commands_with(pres: &'static [&'static str], pats: &'static [&'static str]) -> impl Filter {
     Command {
-        prefixes: pre.into_iter().map(|p| p.to_string()).collect(),
-        command: commands.join("|"),
+        prefixes: pres.into_iter().map(|pre| regex::escape(pre)).collect(),
+        command: pats.join("|"),
         username: Arc::new(Mutex::new(None)),
     }
 }

@@ -30,6 +30,7 @@ impl Filter for Command {
         let mut username = self.username.lock().await;
         if username.is_none() {
             let me = client.get_me().await.unwrap();
+
             *username = me.username().map(|u| u.to_string());
         }
 
@@ -40,14 +41,9 @@ impl Filter for Command {
 
         let pre_pat = format!("^({})(?i)", self.prefixes.join("|"));
         if splitted.len() > 1 {
-            pat = format!(
-                r"{0}{1} ({2}$|{2}\s)",
-                pre_pat,
-                pat,
-                splitted[1..].join(" ")
-            );
+            pat = format!(r"{0}({1} {2})($|\s)", pre_pat, pat, splitted[1..].join(" "));
         } else {
-            pat = format!(r"{0}{1}($|\s)", pre_pat, pat);
+            pat = format!(r"{0}({1})($|\s)", pre_pat, pat);
         }
 
         match update {
