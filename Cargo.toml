@@ -2,6 +2,5 @@
 members = [
     "lib/ferogram",
     "lib/ferogram-macros",
-    "lib/ferogram-plugins",
 ]
 resolver = "2"

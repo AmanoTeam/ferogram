@@ -13,21 +13,23 @@ use grammers_client::Update;
 
 use crate::{di::Injector, Handler, Result};
 
-/// Dispatcher's router
+/// A router.
+///
+/// Sends updates to the handlers.
 #[derive(Default)]
 pub struct Router {
-    handlers: Vec<Handler>,
-    routers: Vec<Router>,
+    pub(crate) handlers: Vec<Handler>,
+    pub(crate) routers: Vec<Router>,
 }
 
 impl Router {
-    /// Attach a new handler.
+    /// Attachs a new handler.
     pub fn handler(mut self, handler: Handler) -> Self {
         self.handlers.push(handler);
         self
     }
 
-    /// Attach a new router.
+    /// Attachs a new router.
     pub fn router<R: FnOnce(Router) -> Router + 'static>(mut self, router: R) -> Self {
         let router = router(Self::default());
         self.handlers.extend(router.handlers);
@@ -46,10 +48,8 @@ impl Router {
             let flow = handler.check(&client, &update).await;
 
             if flow.is_continue() {
-                log::warn!("Filter allowed to continue, running endpoint...");
-
                 if let Some(endpoint) = handler.endpoint.as_mut() {
-                    let mut handler_injector = flow.injector.lock().await;
+                    let mut handler_injector = flow.injector;
                     injector.extend(&mut handler_injector);
 
                     match update.clone() {
@@ -69,19 +69,11 @@ impl Router {
                     match endpoint.handle(injector).await {
                         Ok(()) => return Ok(true),
                         Err(e) => {
-                            log::error!("Error while handling endpoint: {:?}", e);
-
                             if let Some(err_filter) = handler.err_handler.as_mut() {
-                                log::warn!("Running error filter...");
-
                                 let flow = err_filter.run(client.clone(), update.clone(), e).await;
 
                                 if flow.is_continue() {
-                                    log::warn!(
-                                        "Error filter returned continue, retrying endpoint..."
-                                    );
-
-                                    let mut flow_injector = flow.injector.lock().await;
+                                    let mut flow_injector = flow.injector;
                                     injector.extend(&mut flow_injector);
 
                                     return endpoint.handle(injector).await.map(|_| true);
@@ -93,8 +85,6 @@ impl Router {
                             return Err(e);
                         }
                     }
-                } else {
-                    log::warn!("Handler has no endpoint");
                 }
             }
         }

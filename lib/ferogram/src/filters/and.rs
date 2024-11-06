@@ -19,15 +19,14 @@ pub struct And {
 #[async_trait]
 impl Filter for And {
     async fn check(&mut self, client: Client, update: Update) -> Flow {
-        let first_flow = self.first.check(client.clone(), update.clone()).await;
+        let mut first_flow = self.first.check(client.clone(), update.clone()).await;
         let second_flow = self.second.check(client, update).await;
 
         if first_flow.is_continue() && second_flow.is_continue() {
-            let mut first_injector = first_flow.injector.lock().await;
-            let mut second_injector = second_flow.injector.lock().await;
+            let first_injector = &mut first_flow.injector;
+            let mut second_injector = second_flow.injector;
 
             first_injector.extend(&mut second_injector);
-            drop(first_injector);
 
             first_flow
         } else {

@@ -8,17 +8,13 @@
 
 //! Flow module.
 
-use std::sync::Arc;
-
-use tokio::sync::Mutex;
-
 use crate::{di::Injector, Result};
 
 /// Represents the control flow of a handler's filter and its endpoint.
 #[derive(Debug, Default)]
 pub struct Flow {
     action: Action,
-    pub(crate) injector: Arc<Mutex<Injector>>,
+    pub(crate) injector: Injector,
 }
 
 impl Flow {
@@ -34,7 +30,7 @@ impl Flow {
 
     /// Inject a value.
     pub fn inject<R: Clone + Send + Sync + 'static>(&mut self, value: R) {
-        self.injector.try_lock().unwrap().insert(value);
+        self.injector.insert(value);
     }
 
     /// Check if the current action is [`Action::Break`].

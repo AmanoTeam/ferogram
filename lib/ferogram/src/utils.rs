@@ -13,7 +13,7 @@ use std::io::{BufRead, Write};
 use crate::Result;
 
 /// Ask the user in the terminal.
-pub(crate) fn prompt(message: impl Into<String>, password: bool) -> Result<String> {
+pub fn prompt(message: impl Into<String>, password: bool) -> Result<String> {
     let message = message.into();
 
     let stdout = std::io::stdout();

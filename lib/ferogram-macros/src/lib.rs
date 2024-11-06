@@ -6,4 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![deny(unsafe_code)]
+
+//! Ferogram is a small framework for building Telegram bots using the [`grammers`] library.
+//!
 //! Macros module.

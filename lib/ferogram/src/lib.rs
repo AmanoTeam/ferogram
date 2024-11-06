@@ -6,8 +6,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![deny(unsafe_code)]
-
 //! Ferogram is a small framework for building Telegram bots using the [`grammers`] library.
 //!
 //! The main module of the library.
@@ -21,7 +19,10 @@ pub(crate) mod filters;
 pub mod flow;
 pub mod handler;
 mod router;
-pub mod utils;
+pub(crate) mod utils;
+
+#[cfg(feature = "plugins")]
+mod plugins;
 
 pub use client::{Client, ClientBuilder as Builder};
 pub use di::Injector;
@@ -33,8 +34,10 @@ pub(crate) use flow::Flow;
 pub(crate) use handler::Handler;
 pub use router::Router;
 
+#[cfg(feature = "plugins")]
+pub use plugins::Plugin;
+
 #[cfg(feature = "macros")]
-#[allow(unused_imports)]
 pub use ferogram_macros as macros;
 
 #[cfg(feature = "macros")]
@@ -60,7 +63,7 @@ pub mod prelude {
     };
 }
 
-/// std [`Result`] with [`Error`].
+/// [`Result`] with [`Error`].
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Wait for a `Ctrl+C` signal and keep the process alive.
