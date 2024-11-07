@@ -8,15 +8,12 @@
 
 //! Dispatcher module.
 
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 use grammers_client::{types::Chat, Client, Update};
 use tokio::sync::Mutex;
 
-use crate::{di, Result, Router};
-
-#[cfg(feature = "plugins")]
-use crate::{plugins, Plugin};
+use crate::{di, Plugin, Result, Router};
 
 /// A dispatcher.
 ///
@@ -24,7 +21,6 @@ use crate::{plugins, Plugin};
 #[derive(Default)]
 pub struct Dispatcher {
     routers: Arc<Mutex<Vec<Router>>>,
-    #[cfg(feature = "plugins")]
     plugins: Arc<Mutex<Vec<Plugin>>>,
     injector: di::Injector,
 
@@ -63,7 +59,6 @@ impl Dispatcher {
     }
 
     /// Attachs a new plugin.
-    #[cfg(feature = "plugins")]
     pub fn plugin(self, plugin: Plugin) -> Self {
         // `plugin()` only is executed on startup, so `plugins` never will be locked.
         self.plugins.try_lock().unwrap().push(plugin);
@@ -71,19 +66,9 @@ impl Dispatcher {
         self
     }
 
-    /// Loads plugins from a directory.
-    #[cfg(feature = "plugins")]
-    pub fn load_plugins<P: AsRef<Path>>(self, path: P) -> Result<Self> {
-        let plugins = plugins::load_plugins(path).expect("Failed to load plugins.");
-        self.plugins.try_lock().unwrap().extend(plugins);
-
-        Ok(self)
-    }
-
     /// Handle the update sent by Telegram.
     pub(crate) async fn handle_update(&self, client: &Client, update: &Update) -> Result<()> {
         let mut routers = self.routers.lock().await;
-        #[cfg(feature = "plugins")]
         let mut plugins = self.plugins.lock().await;
 
         let mut injector = di::Injector::default();
@@ -133,7 +118,6 @@ impl Dispatcher {
             }
         }
 
-        #[cfg(feature = "plugins")]
         for plugin in plugins.iter_mut() {
             println!("Plugin: {}, {}", plugin.name(), plugin.version());
             match plugin

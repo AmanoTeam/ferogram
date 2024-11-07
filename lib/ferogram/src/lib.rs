@@ -18,11 +18,9 @@ pub mod filter;
 pub(crate) mod filters;
 pub mod flow;
 pub mod handler;
+mod plugins;
 mod router;
 pub(crate) mod utils;
-
-#[cfg(feature = "plugins")]
-mod plugins;
 
 pub use client::{Client, ClientBuilder as Builder};
 pub use di::Injector;
@@ -32,10 +30,8 @@ pub(crate) use error_handler::ErrorHandler;
 pub use filter::Filter;
 pub(crate) use flow::Flow;
 pub(crate) use handler::Handler;
-pub use router::Router;
-
-#[cfg(feature = "plugins")]
 pub use plugins::Plugin;
+pub use router::Router;
 
 #[cfg(feature = "macros")]
 pub use ferogram_macros as macros;
@@ -50,10 +46,10 @@ pub use ferogram_macros as macros;
 /// ```
 #[macro_export]
 macro_rules! deps {
-        [$($dep:expr),*] => {
-            |injector| { injector$(.with($dep))* }
-        };
-    }
+    [$($dep:expr),*] => {
+        |injector| { injector$(.with($dep))* }
+    };
+}
 
 /// Common types and traits.
 pub mod prelude {

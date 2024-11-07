@@ -12,9 +12,7 @@ keywords = ["telegram", "bot", "framework", "grammers"]
 edition = "2021"
 
 [features]
-default = ["plugins"]
 macros = ["ferogram-macros"]
-plugins = ["dlopen2"]
 
 [dependencies]
 ferogram-macros = { path = "../ferogram-macros", optional = true }
@@ -24,7 +22,6 @@ grammers-client = { path = "../../../grammers/lib/grammers-client/" }
 log = "*"
 regex = "1"
 tokio = { version = "1", features = ["fs", "rt", "signal"] }
-dlopen2 = { version = "*", default-features = false, features = ["symbor"], optional = true }
 futures = { version = "*", default-features = false, features = ["alloc"] }
 rpassword = "7"
 async-trait = "*"
