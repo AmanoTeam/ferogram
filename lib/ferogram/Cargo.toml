@@ -16,8 +16,7 @@ macros = ["ferogram-macros"]
 
 [dependencies]
 ferogram-macros = { path = "../ferogram-macros", optional = true }
-# grammers-client = { git = "https://github.com/Lonami/grammers" }
-grammers-client = { path = "../../../grammers/lib/grammers-client/" }
+grammers-client = { git = "https://github.com/Lonami/grammers" }
 
 log = "*"
 regex = "1"

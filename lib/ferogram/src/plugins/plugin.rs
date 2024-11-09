@@ -9,7 +9,6 @@
 use crate::{Handler, Router};
 
 /// A plugin.
-#[repr(C)]
 #[derive(Default)]
 pub struct Plugin {
     name: String,
@@ -48,7 +47,6 @@ impl Plugin {
     /// Adds a handler to the plugin.
     pub fn handler(mut self, handler: Handler) -> Self {
         self.router.handlers.push(handler);
-
         self
     }
 }
