@@ -13,7 +13,7 @@ use std::sync::Arc;
 use grammers_client::{types::Chat, Client, Update};
 use tokio::sync::Mutex;
 
-use crate::{di, Plugin, Result, Router};
+use crate::{di, Context, Plugin, Result, Router};
 
 /// A dispatcher.
 ///
@@ -23,6 +23,7 @@ pub struct Dispatcher {
     routers: Arc<Mutex<Vec<Router>>>,
     plugins: Arc<Mutex<Vec<Plugin>>>,
     injector: di::Injector,
+    last_context: Arc<Mutex<Option<Context>>>,
 
     allow_from_self: bool,
 }
@@ -75,6 +76,18 @@ impl Dispatcher {
         injector.insert(client.clone());
         injector.insert(update.clone());
         injector.extend(&mut self.injector.clone());
+
+        let mut last_context = self.last_context.lock().await;
+
+        if let Some(context) = last_context.as_ref() {
+            if context.is_waiting_for_update() {
+                return Ok(());
+            }
+        }
+
+        let context = Context::new(&client, &update);
+        last_context.replace(context.clone());
+        injector.insert(context);
 
         if !self.allow_from_self {
             match update {

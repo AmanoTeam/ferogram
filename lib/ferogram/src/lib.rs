@@ -11,6 +11,7 @@
 //! The main module of the library.
 
 mod client;
+mod context;
 pub(crate) mod di;
 mod dispatcher;
 mod error_handler;
@@ -23,6 +24,7 @@ mod router;
 pub(crate) mod utils;
 
 pub use client::{Client, ClientBuilder as Builder};
+pub use context::Context;
 pub use di::Injector;
 pub use dispatcher::Dispatcher;
 pub use error_handler::Error;
