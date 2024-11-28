@@ -119,7 +119,6 @@ impl Dispatcher {
         }
 
         for plugin in plugins.iter_mut() {
-            println!("Plugin: {}, {}", plugin.name(), plugin.version());
             match plugin
                 .router
                 .handle_update(client, update, &mut injector)
