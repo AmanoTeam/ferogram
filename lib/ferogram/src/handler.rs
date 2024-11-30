@@ -16,10 +16,14 @@ use crate::{di, flow, ErrorHandler, Filter, Flow};
 ///
 /// Stores a [`Filter`], an [`di::Endpoint`] and an [`ErrorHandler`].
 pub struct Handler {
+    /// The type of update to handle.
     update_type: UpdateType,
 
+    /// The filter.
     filter: Option<Box<dyn Filter>>,
+    /// The endpoint.
     pub(crate) endpoint: Option<di::Endpoint>,
+    /// The error handler.
     pub(crate) err_handler: Option<Box<dyn ErrorHandler>>,
 }
 

@@ -16,7 +16,7 @@ use grammers_client::{Client, Update};
 
 use crate::{flow, Flow};
 
-/// std [`Error`] boxed.
+/// [`Error`] boxed.
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 /// Update error filter.

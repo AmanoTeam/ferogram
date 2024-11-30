@@ -24,7 +24,7 @@ tokio = { version = "1", features = ["fs", "rt", "signal"] }
 futures = { version = "*", default-features = false, features = ["alloc"] }
 rpassword = "7"
 async-trait = "*"
-async-recursion = "*"
+async-recursion = "1"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["fs", "rt", "macros", "signal"] }

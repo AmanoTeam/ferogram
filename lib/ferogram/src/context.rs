@@ -8,31 +8,36 @@
 
 //! Context module.
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use grammers_client::{
-    types::{Chat, InputMessage, Message},
+    types::{CallbackQuery, Chat, InlineQuery, InlineSend, InputMessage, Message},
     InvocationError, Update,
 };
-use tokio::sync::Mutex;
+use tokio::sync::{broadcast::Receiver, Mutex};
 
 /// The context of an update.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Context {
+    /// The client.
     client: grammers_client::Client,
+    /// The update.
     update: Update,
-
-    waiting_for_update: Arc<Mutex<bool>>,
+    /// The update receiver.
+    upd_receiver: Arc<Mutex<Receiver<Update>>>,
 }
 
 impl Context {
     /// Creates a new context.
-    pub fn new(client: &grammers_client::Client, update: &Update) -> Self {
+    pub fn new(
+        client: &grammers_client::Client,
+        update: &Update,
+        upd_receiver: Receiver<Update>,
+    ) -> Self {
         Self {
             client: client.clone(),
             update: update.clone(),
-
-            waiting_for_update: Arc::new(Mutex::new(false)),
+            upd_receiver: Arc::new(Mutex::new(upd_receiver)),
         }
     }
 
@@ -48,13 +53,42 @@ impl Context {
 
     /// Try to return the chat.
     pub async fn chat(&self) -> Option<Chat> {
+        self.message().await.map(|msg| msg.chat())
+    }
+
+    /// Try to return the message.
+    pub async fn message(&self) -> Option<Message> {
         match &self.update {
-            Update::NewMessage(message) | Update::MessageEdited(message) => Some(message.chat()),
+            Update::NewMessage(message) | Update::MessageEdited(message) => Some(message.clone()),
             Update::CallbackQuery(query) => {
                 let message = query.load_message().await.expect("Failed to load message");
 
-                Some(message.chat().clone())
+                Some(message)
             }
+            _ => None,
+        }
+    }
+
+    /// Try to return the callback query.
+    pub async fn callback_query(&self) -> Option<CallbackQuery> {
+        match &self.update {
+            Update::CallbackQuery(query) => Some(query.clone()),
+            _ => None,
+        }
+    }
+
+    /// Try to return the inline query.
+    pub async fn inline_query(&self) -> Option<InlineQuery> {
+        match &self.update {
+            Update::InlineQuery(query) => Some(query.clone()),
+            _ => None,
+        }
+    }
+
+    /// Try to return the inline send.
+    pub async fn inline_send(&self) -> Option<InlineSend> {
+        match &self.update {
+            Update::InlineSend(inline_send) => Some(inline_send.clone()),
             _ => None,
         }
     }
@@ -75,10 +109,123 @@ impl Context {
         }
     }
 
+    /// Try to directly edit the message held by the update.
+    pub async fn edit<M: Into<InputMessage>>(&self, message: M) -> Result<(), InvocationError> {
+        match &self.update {
+            Update::NewMessage(msg) | Update::MessageEdited(msg) => msg.edit(message).await,
+            Update::CallbackQuery(query) => {
+                let msg = query.load_message().await.expect("Failed to load message");
+
+                msg.edit(message).await
+            }
+            _ => panic!("Cannot edit this update"),
+        }
+    }
+
+    /// Try to directly delete the message held by the update.
+    pub async fn delete(&self) -> Result<(), InvocationError> {
+        match &self.update {
+            Update::NewMessage(msg) | Update::MessageEdited(msg) => msg.delete().await,
+            Update::CallbackQuery(query) => {
+                let msg = query.load_message().await.expect("Failed to load message");
+
+                msg.delete().await
+            }
+            _ => panic!("Cannot delete this update"),
+        }
+    }
+
+    /// Wait for an update.
+    pub async fn wait_for_update(&self, timeout: Option<u64>) -> Option<Update> {
+        let mut rx = self.upd_receiver.lock().await;
+
+        loop {
+            tokio::select! {
+                _ = tokio::time::sleep(Duration::from_secs(timeout.unwrap_or(0))) => return None,
+                Ok(update) = rx.recv() => return Some(update),
+            };
+        }
+    }
+
+    /// Wait for a reply to a message.
+    pub async fn wait_for_reply<M: Into<InputMessage>>(
+        &self,
+        message: M,
+        timeout: Option<u64>,
+    ) -> Result<Message, crate::Error> {
+        let sent = self.reply(message).await.expect("Failed to reply");
+
+        loop {
+            if let Some(update) = self.wait_for_update(timeout).await {
+                if let Update::NewMessage(msg) | Update::MessageEdited(msg) = update {
+                    if let Some(msg_id) = msg.reply_to_message_id() {
+                        if msg_id == sent.id() {
+                            return Ok(msg);
+                        }
+                    }
+                }
+            } else {
+                return Err(crate::Error::timeout(timeout.unwrap()));
+            }
+        }
+    }
+
+    /// Wait for a message.
+    pub async fn wait_for_message(&self, timeout: Option<u64>) -> Option<Message> {
+        loop {
+            if let Some(update) = self.wait_for_update(timeout).await {
+                if let Update::NewMessage(message) = update {
+                    return Some(message);
+                }
+            } else {
+                return None;
+            }
+        }
+    }
+
+    /// Wait for a callback query.
+    pub async fn wait_for_callback_query(&mut self, timeout: Option<u64>) -> Option<CallbackQuery> {
+        loop {
+            if let Some(update) = self.wait_for_update(timeout).await {
+                if let Update::CallbackQuery(query) = update {
+                    return Some(query);
+                }
+            } else {
+                return None;
+            }
+        }
+    }
+
+    /// Wait for a inline query.
+    pub async fn wait_for_inline_query(&mut self, timeout: Option<u64>) -> Option<InlineQuery> {
+        loop {
+            if let Some(update) = self.wait_for_update(timeout).await {
+                if let Update::InlineQuery(query) = update {
+                    return Some(query);
+                }
+            } else {
+                return None;
+            }
+        }
+    }
+
+    /// Wait for a inline send.
+    pub async fn wait_for_inline_send(&mut self, timeout: Option<u64>) -> Option<InlineSend> {
+        loop {
+            if let Some(update) = self.wait_for_update(timeout).await {
+                if let Update::InlineSend(inline_send) = update {
+                    return Some(inline_send);
+                }
+            } else {
+                return None;
+            }
+        }
+    }
+
     /// Returns if the update is a message.
     pub fn is_message(&self) -> bool {
         matches!(
-            self.update,
+            self.update(),
             Update::NewMessage(_) | Update::MessageEdited(_)
         )
     }
@@ -106,13 +253,5 @@ impl Context {
     /// Returns if is a raw update.
     pub fn is_raw(&self) -> bool {
         matches!(self.update, Update::Raw(_))
-    }
-
-    /// Returns if the context is waiting for an update.
-    pub(crate) fn is_waiting_for_update(&self) -> bool {
-        *self
-            .waiting_for_update
-            .try_lock()
-            .expect("Failed to lock waiting_for_update")
     }
 }

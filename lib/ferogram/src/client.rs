@@ -16,17 +16,26 @@ use crate::{di, utils::prompt, Dispatcher, ErrorHandler, Result};
 
 /// Wrapper about grammers' `Client` instance.
 pub struct Client {
+    /// The dispatcher.
     dispatcher: Dispatcher,
+    /// The client type.
     client_type: ClientType,
+    /// The inner grammers' `Client` instance.
     inner_client: grammers_client::Client,
 
+    /// The session file path.
     session_file: Option<String>,
 
+    /// Whether the client is connected.
     is_connected: bool,
+    /// Wheter is to wait for a `Ctrl + C` signal to close the connection and exit the app.
     wait_for_ctrl_c: bool,
 
+    /// The global error handler.
     pub(crate) err_handler: Option<Box<dyn ErrorHandler>>,
+    /// The exit handler.
     pub(crate) exit_handler: Option<di::Endpoint>,
+    /// The ready handler.
     pub(crate) ready_handler: Option<di::Endpoint>,
 }
 
@@ -218,17 +227,26 @@ impl Client {
 /// `Client` instance builder.
 #[derive(Default)]
 pub struct ClientBuilder {
+    /// The client type.
     client_type: ClientType,
 
+    /// Developer's API ID.
     api_id: i32,
+    /// Developer's API hash.
     api_hash: String,
+    /// The session file path.
     session_file: Option<String>,
+    /// The initial parameters.
     init_params: InitParams,
 
+    /// Wheter is to wait for a `Ctrl + C` signal to close the connection and exit the app.
     wait_for_ctrl_c: bool,
 
+    /// The global error handler.
     pub(crate) err_handler: Option<Box<dyn ErrorHandler>>,
+    /// The exit handler.
     pub(crate) exit_handler: Option<di::Endpoint>,
+    /// The ready handler.
     pub(crate) ready_handler: Option<di::Endpoint>,
 }
 

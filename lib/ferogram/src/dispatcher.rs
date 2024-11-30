@@ -11,20 +11,24 @@
 use std::sync::Arc;
 
 use grammers_client::{types::Chat, Client, Update};
-use tokio::sync::Mutex;
+use tokio::sync::{broadcast::Sender, Mutex};
 
 use crate::{di, Context, Plugin, Result, Router};
 
 /// A dispatcher.
 ///
 /// Sends the updates to the routers and plugins.
-#[derive(Default)]
 pub struct Dispatcher {
+    /// The routers.
     routers: Arc<Mutex<Vec<Router>>>,
+    /// The plugins.
     plugins: Arc<Mutex<Vec<Plugin>>>,
+    /// The main injector.
     injector: di::Injector,
-    last_context: Arc<Mutex<Option<Context>>>,
+    /// The update sender.
+    upd_sender: Sender<Update>,
 
+    /// Whether allow the client to handle updates from itself.
     allow_from_self: bool,
 }
 
@@ -69,25 +73,19 @@ impl Dispatcher {
 
     /// Handle the update sent by Telegram.
     pub(crate) async fn handle_update(&self, client: &Client, update: &Update) -> Result<()> {
-        let mut routers = self.routers.lock().await;
-        let mut plugins = self.plugins.lock().await;
-
         let mut injector = di::Injector::default();
+
+        let upd_receiver = self.upd_sender.subscribe();
+        let context = Context::new(client, update, upd_receiver);
+        injector.insert(context);
+
+        self.upd_sender
+            .send(update.clone())
+            .expect("Failed to send update");
+
         injector.insert(client.clone());
         injector.insert(update.clone());
         injector.extend(&mut self.injector.clone());
-
-        let mut last_context = self.last_context.lock().await;
-
-        if let Some(context) = last_context.as_ref() {
-            if context.is_waiting_for_update() {
-                return Ok(());
-            }
-        }
-
-        let context = Context::new(&client, &update);
-        last_context.replace(context.clone());
-        injector.insert(context);
 
         if !self.allow_from_self {
             match update {
@@ -123,6 +121,7 @@ impl Dispatcher {
             };
         }
 
+        let mut routers = self.routers.lock().await;
         for router in routers.iter_mut() {
             match router.handle_update(client, update, &mut injector).await {
                 Ok(false) => continue,
@@ -131,6 +130,7 @@ impl Dispatcher {
             }
         }
 
+        let mut plugins = self.plugins.lock().await;
         for plugin in plugins.iter_mut() {
             match plugin
                 .router
@@ -144,6 +144,21 @@ impl Dispatcher {
         }
 
         Ok(())
+    }
+}
+
+impl Default for Dispatcher {
+    fn default() -> Self {
+        let (upd_sender, _) = tokio::sync::broadcast::channel(10);
+
+        Self {
+            routers: Arc::new(Mutex::new(Vec::new())),
+            plugins: Arc::new(Mutex::new(Vec::new())),
+            injector: di::Injector::default(),
+            upd_sender,
+
+            allow_from_self: false,
+        }
     }
 }
 

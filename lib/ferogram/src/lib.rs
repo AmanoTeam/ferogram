@@ -14,6 +14,7 @@ mod client;
 mod context;
 pub(crate) mod di;
 mod dispatcher;
+pub mod error;
 mod error_handler;
 pub mod filter;
 pub(crate) mod filters;
@@ -27,7 +28,7 @@ pub use client::{Client, ClientBuilder as Builder};
 pub use context::Context;
 pub use di::Injector;
 pub use dispatcher::Dispatcher;
-pub use error_handler::Error;
+pub use error::Error;
 pub(crate) use error_handler::ErrorHandler;
 pub use filter::Filter;
 pub(crate) use flow::Flow;
@@ -62,7 +63,7 @@ pub mod prelude {
 }
 
 /// [`Result`] with [`Error`].
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, error_handler::Error>;
 
 /// Wait for a `Ctrl+C` signal and keep the process alive.
 pub async fn wait_for_ctrl_c() {
