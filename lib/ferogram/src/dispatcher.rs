@@ -8,10 +8,8 @@
 
 //! Dispatcher module.
 
-use std::sync::Arc;
-
 use grammers_client::{types::Chat, Client, Update};
-use tokio::sync::{broadcast::Sender, Mutex};
+use tokio::sync::broadcast::Sender;
 
 use crate::{di, Context, Plugin, Result, Router};
 
@@ -20,9 +18,9 @@ use crate::{di, Context, Plugin, Result, Router};
 /// Sends the updates to the routers and plugins.
 pub struct Dispatcher {
     /// The routers.
-    routers: Arc<Mutex<Vec<Router>>>,
+    routers: Vec<Router>,
     /// The plugins.
-    plugins: Arc<Mutex<Vec<Plugin>>>,
+    plugins: Vec<Plugin>,
     /// The main injector.
     injector: di::Injector,
     /// The update sender.
@@ -34,10 +32,9 @@ pub struct Dispatcher {
 
 impl Dispatcher {
     /// Attachs a new router.
-    pub fn router<R: FnOnce(Router) -> Router + 'static>(self, router: R) -> Self {
+    pub fn router<R: FnOnce(Router) -> Router + 'static>(mut self, router: R) -> Self {
         let router = router(Router::default());
-        // `router()` only is executed on startup, so `routers` never will be locked.
-        self.routers.try_lock().unwrap().push(router);
+        self.routers.push(router);
 
         self
     }
@@ -64,15 +61,14 @@ impl Dispatcher {
     }
 
     /// Attachs a new plugin.
-    pub fn plugin(self, plugin: Plugin) -> Self {
-        // `plugin()` only is executed on startup, so `plugins` never will be locked.
-        self.plugins.try_lock().unwrap().push(plugin);
+    pub fn plugin(mut self, plugin: Plugin) -> Self {
+        self.plugins.push(plugin);
 
         self
     }
 
     /// Handle the update sent by Telegram.
-    pub(crate) async fn handle_update(&self, client: &Client, update: &Update) -> Result<()> {
+    pub(crate) async fn handle_update(&mut self, client: &Client, update: &Update) -> Result<()> {
         let mut injector = di::Injector::default();
 
         let upd_receiver = self.upd_sender.subscribe();
@@ -121,8 +117,7 @@ impl Dispatcher {
             };
         }
 
-        let mut routers = self.routers.lock().await;
-        for router in routers.iter_mut() {
+        for router in self.routers.iter_mut() {
             match router.handle_update(client, update, &mut injector).await {
                 Ok(false) => continue,
                 Ok(true) => return Ok(()),
@@ -130,8 +125,7 @@ impl Dispatcher {
             }
         }
 
-        let mut plugins = self.plugins.lock().await;
-        for plugin in plugins.iter_mut() {
+        for plugin in self.plugins.iter_mut() {
             match plugin
                 .router
                 .handle_update(client, update, &mut injector)
@@ -152,8 +146,8 @@ impl Default for Dispatcher {
         let (upd_sender, _) = tokio::sync::broadcast::channel(10);
 
         Self {
-            routers: Arc::new(Mutex::new(Vec::new())),
-            plugins: Arc::new(Mutex::new(Vec::new())),
+            routers: Vec::new(),
+            plugins: Vec::new(),
             injector: di::Injector::default(),
             upd_sender,
 

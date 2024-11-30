@@ -8,7 +8,7 @@
 
 //! Client module.
 
-use std::{net::SocketAddr, path::Path, sync::Arc};
+use std::{net::SocketAddr, path::Path};
 
 use grammers_client::{session::Session, Config, InitParams, ReconnectionPolicy, SignInError};
 
@@ -148,7 +148,7 @@ impl Client {
     /// Listen to Telegram's updates and send them to the dispatcher's routers.
     pub async fn run(self) -> Result<()> {
         let handle = self.inner_client;
-        let dispatcher = Arc::new(self.dispatcher);
+        let mut dispatcher = self.dispatcher;
         let err_handler = self.err_handler;
         let ready_handler = self.ready_handler;
 
@@ -166,21 +166,18 @@ impl Client {
                 match handle.next_update().await {
                     Ok(update) => {
                         let client = handle.clone();
-                        let dispatcher = Arc::clone(&dispatcher);
                         let err_handler = err_handler.clone();
 
-                        tokio::task::spawn(async move {
-                            match dispatcher.handle_update(&client, &update).await {
-                                Ok(_) => {}
-                                Err(e) => {
-                                    if let Some(err_handler) = err_handler.as_ref() {
-                                        err_handler.run(client, update, e).await;
-                                    } else {
-                                        log::error!("Error handling update: {:?}", e);
-                                    }
+                        match dispatcher.handle_update(&client, &update).await {
+                            Ok(()) => {}
+                            Err(e) => {
+                                if let Some(err_handler) = err_handler.as_ref() {
+                                    err_handler.run(client, update, e).await;
+                                } else {
+                                    log::error!("Error handling update: {:?}", e);
                                 }
                             }
-                        });
+                        }
                     }
                     Err(e) => {
                         log::error!("Error getting updates: {:?}", e);
