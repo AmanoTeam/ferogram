@@ -11,7 +11,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use futures::Future;
+use futures_util::Future;
 use grammers_client::{Client, Update};
 
 pub use crate::filters::*;
@@ -21,7 +21,7 @@ use crate::{flow, Flow};
 ///
 /// Checked at each update to know if the update should be handled.
 #[async_trait]
-pub trait Filter: Send + Sync + 'static {
+pub trait Filter: CloneFilter + Send + Sync + 'static {
     /// Check if the update should be handled.
     async fn check(&mut self, client: Client, update: Update) -> Flow;
 
@@ -59,7 +59,7 @@ pub trait Filter: Send + Sync + 'static {
 }
 
 #[async_trait]
-impl<T: ?Sized, F, O: Into<Flow>> Filter for T
+impl<T: Clone + ?Sized, F, O: Into<Flow>> Filter for T
 where
     T: Fn(Client, Update) -> F + Send + Sync + 'static,
     F: Future<Output = O> + Send + Sync + 'static,
@@ -83,5 +83,26 @@ where
             Ok(flow) => flow,
             Err(_) => flow::break_now(),
         }
+    }
+}
+
+/// A trait allows cloning the filter.
+pub trait CloneFilter {
+    /// Clones the filter.
+    fn clone_filter(&self) -> Box<dyn Filter>;
+}
+
+impl<T> CloneFilter for T
+where
+    T: Filter + Clone + 'static,
+{
+    fn clone_filter(&self) -> Box<dyn Filter> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn Filter> {
+    fn clone(&self) -> Self {
+        self.clone_filter()
     }
 }

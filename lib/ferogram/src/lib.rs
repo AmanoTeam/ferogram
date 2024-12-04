@@ -12,6 +12,7 @@
 
 mod client;
 mod context;
+mod conversation;
 pub(crate) mod di;
 mod dispatcher;
 pub mod error;
@@ -26,6 +27,7 @@ pub(crate) mod utils;
 
 pub use client::{Client, ClientBuilder as Builder};
 pub use context::Context;
+pub use conversation::{Conversation, Response};
 pub use di::Injector;
 pub use dispatcher::Dispatcher;
 pub use error::Error;

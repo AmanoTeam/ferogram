@@ -16,7 +16,7 @@ use crate::{di::Injector, Handler, Result};
 /// A router.
 ///
 /// Sends updates to the handlers.
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Router {
     /// The handlers.
     pub(crate) handlers: Vec<Handler>,

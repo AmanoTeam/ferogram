@@ -148,7 +148,7 @@ impl Client {
     /// Listen to Telegram's updates and send them to the dispatcher's routers.
     pub async fn run(self) -> Result<()> {
         let handle = self.inner_client;
-        let mut dispatcher = self.dispatcher;
+        let dispatcher = self.dispatcher;
         let err_handler = self.err_handler;
         let ready_handler = self.ready_handler;
 
@@ -166,18 +166,18 @@ impl Client {
                 match handle.next_update().await {
                     Ok(update) => {
                         let client = handle.clone();
+                        let mut dp = dispatcher.clone();
                         let err_handler = err_handler.clone();
 
-                        match dispatcher.handle_update(&client, &update).await {
-                            Ok(()) => {}
-                            Err(e) => {
+                        tokio::task::spawn(async move {
+                            if let Err(e) = dp.handle_update(&client, &update).await {
                                 if let Some(err_handler) = err_handler.as_ref() {
                                     err_handler.run(client, update, e).await;
                                 } else {
                                     log::error!("Error handling update: {:?}", e);
                                 }
                             }
-                        }
+                        });
                     }
                     Err(e) => {
                         log::error!("Error getting updates: {:?}", e);

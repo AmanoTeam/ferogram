@@ -9,7 +9,7 @@
 use crate::{Handler, Router};
 
 /// A plugin.
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Plugin {
     name: String,
     version: String,

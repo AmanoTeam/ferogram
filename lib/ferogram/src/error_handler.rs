@@ -11,7 +11,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use futures::Future;
+use futures_util::Future;
 use grammers_client::{Client, Update};
 
 use crate::{flow, Flow};

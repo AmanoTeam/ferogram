@@ -16,6 +16,7 @@ use crate::{di, Context, Plugin, Result, Router};
 /// A dispatcher.
 ///
 /// Sends the updates to the routers and plugins.
+#[derive(Clone)]
 pub struct Dispatcher {
     /// The routers.
     routers: Vec<Router>,

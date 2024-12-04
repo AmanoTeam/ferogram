@@ -11,6 +11,7 @@ use grammers_client::{Client, Update};
 
 use crate::{Filter, Flow};
 
+#[derive(Clone)]
 pub struct Not {
     pub(crate) filter: Box<dyn Filter>,
 }

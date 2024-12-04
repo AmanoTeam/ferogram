@@ -8,7 +8,7 @@
 
 //! Dependency injection module.
 
-use futures::Future;
+use futures_util::Future;
 use std::{
     any::{Any, TypeId},
     collections::{hash_map::Entry, HashMap},
@@ -133,7 +133,7 @@ pub type Value = Arc<dyn Any + Send + Sync>;
 
 #[async_trait]
 /// Handler trait.
-pub trait Handler: Send + Sync + 'static {
+pub trait Handler: CloneHandler + Send + Sync + 'static {
     /// Handle the request.
     async fn handle(&mut self, injector: &mut Injector) -> Result<()>;
 }
@@ -236,3 +236,21 @@ impl_into_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
 impl_into_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
 impl_into_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
 impl_into_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
+
+/// A trait allows cloning the handler.
+pub trait CloneHandler {
+    /// Clones the handler.
+    fn clone_handler(&self) -> Box<dyn Handler>;
+}
+
+impl<T: Handler + Clone> CloneHandler for T {
+    fn clone_handler(&self) -> Box<dyn Handler> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn Handler> {
+    fn clone(&self) -> Self {
+        self.clone_handler()
+    }
+}

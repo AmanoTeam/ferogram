@@ -8,23 +8,23 @@
 
 //! Context module.
 
-use std::{sync::Arc, time::Duration};
+use std::{pin::pin, time::Duration};
 
+use futures_util::future::{select, Either};
 use grammers_client::{
     types::{CallbackQuery, Chat, InlineQuery, InlineSend, InputMessage, Message},
     InvocationError, Update,
 };
-use tokio::sync::{broadcast::Receiver, Mutex};
+use tokio::sync::broadcast::Receiver;
 
 /// The context of an update.
-#[derive(Clone)]
 pub struct Context {
     /// The client.
     client: grammers_client::Client,
     /// The update.
     update: Update,
     /// The update receiver.
-    upd_receiver: Arc<Mutex<Receiver<Update>>>,
+    upd_receiver: Receiver<Update>,
 }
 
 impl Context {
@@ -37,7 +37,7 @@ impl Context {
         Self {
             client: client.clone(),
             update: update.clone(),
-            upd_receiver: Arc::new(Mutex::new(upd_receiver)),
+            upd_receiver,
         }
     }
 
@@ -136,20 +136,31 @@ impl Context {
     }
 
     /// Wait for an update.
-    pub async fn wait_for_update(&self, timeout: Option<u64>) -> Option<Update> {
-        let mut rx = self.upd_receiver.lock().await;
+    ///
+    /// If the timeout is `None`, it will wait for 30 seconds.
+    pub async fn wait_for_update(&mut self, timeout: Option<u64>) -> Option<Update> {
+        let rx = &mut self.upd_receiver;
 
         loop {
-            tokio::select! {
-                _ = tokio::time::sleep(Duration::from_secs(timeout.unwrap_or(0))) => return None,
-                Ok(update) = rx.recv() => return Some(update),
-            };
+            let stop = pin!(async {
+                tokio::time::sleep(Duration::from_secs(timeout.unwrap_or(30))).await
+            });
+            let upd = pin!(async { rx.recv().await });
+
+            match select(stop, upd).await {
+                Either::Left(_) => return None,
+                Either::Right((update, _)) => {
+                    return Some(update.expect("Failed to receive update"))
+                }
+            }
         }
     }
 
     /// Wait for a reply to a message.
+    ///
+    /// If the timeout is `None`, it will wait for 30 seconds.
     pub async fn wait_for_reply<M: Into<InputMessage>>(
-        &self,
+        &mut self,
         message: M,
         timeout: Option<u64>,
     ) -> Result<Message, crate::Error> {
@@ -171,7 +182,9 @@ impl Context {
     }
 
     /// Wait for a message.
-    pub async fn wait_for_message(&self, timeout: Option<u64>) -> Option<Message> {
+    ///
+    /// If the timeout is `None`, it will wait for 30 seconds.
+    pub async fn wait_for_message(&mut self, timeout: Option<u64>) -> Option<Message> {
         loop {
             if let Some(update) = self.wait_for_update(timeout).await {
                 if let Update::NewMessage(message) = update {
@@ -184,6 +197,8 @@ impl Context {
     }
 
     /// Wait for a callback query.
+    ///
+    /// If the timeout is `None`, it will wait for 30 seconds.
     pub async fn wait_for_callback_query(&mut self, timeout: Option<u64>) -> Option<CallbackQuery> {
         loop {
             if let Some(update) = self.wait_for_update(timeout).await {
@@ -197,6 +212,8 @@ impl Context {
     }
 
     /// Wait for a inline query.
+    ///
+    /// If the timeout is `None`, it will wait for 30 seconds.
     pub async fn wait_for_inline_query(&mut self, timeout: Option<u64>) -> Option<InlineQuery> {
         loop {
             if let Some(update) = self.wait_for_update(timeout).await {
@@ -210,6 +227,8 @@ impl Context {
     }
 
     /// Wait for a inline send.
+    ///
+    /// If the timeout is `None`, it will wait for 30 seconds.
     pub async fn wait_for_inline_send(&mut self, timeout: Option<u64>) -> Option<InlineSend> {
         loop {
             if let Some(update) = self.wait_for_update(timeout).await {
@@ -253,5 +272,15 @@ impl Context {
     /// Returns if is a raw update.
     pub fn is_raw(&self) -> bool {
         matches!(self.update, Update::Raw(_))
+    }
+}
+
+impl Clone for Context {
+    fn clone(&self) -> Self {
+        Self {
+            client: self.client.clone(),
+            update: self.update.clone(),
+            upd_receiver: self.upd_receiver.resubscribe(),
+        }
     }
 }

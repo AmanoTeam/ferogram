@@ -14,6 +14,7 @@ use tokio::sync::Mutex;
 
 use crate::{Filter, Flow};
 
+#[derive(Clone)]
 pub struct Command {
     pub(crate) prefixes: Vec<String>,
     pub(crate) command: String,
