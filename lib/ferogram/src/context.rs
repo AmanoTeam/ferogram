@@ -8,14 +8,14 @@
 
 //! Context module.
 
-use std::{pin::pin, time::Duration};
+use std::{pin::pin, sync::Arc, time::Duration};
 
 use futures_util::future::{select, Either};
 use grammers_client::{
     types::{CallbackQuery, Chat, InlineQuery, InlineSend, InputMessage, Message},
     InvocationError, Update,
 };
-use tokio::sync::broadcast::Receiver;
+use tokio::sync::{broadcast::Receiver, Mutex};
 
 /// The context of an update.
 pub struct Context {
@@ -24,7 +24,7 @@ pub struct Context {
     /// The update.
     update: Update,
     /// The update receiver.
-    upd_receiver: Receiver<Update>,
+    upd_receiver: Arc<Mutex<Receiver<Update>>>,
 }
 
 impl Context {
@@ -37,7 +37,7 @@ impl Context {
         Self {
             client: client.clone(),
             update: update.clone(),
-            upd_receiver,
+            upd_receiver: Arc::new(Mutex::new(upd_receiver)),
         }
     }
 
@@ -138,8 +138,8 @@ impl Context {
     /// Wait for an update.
     ///
     /// If the timeout is `None`, it will wait for 30 seconds.
-    pub async fn wait_for_update(&mut self, timeout: Option<u64>) -> Option<Update> {
-        let rx = &mut self.upd_receiver;
+    pub async fn wait_for_update(&self, timeout: Option<u64>) -> Option<Update> {
+        let mut rx = self.upd_receiver.lock().await;
 
         loop {
             let stop = pin!(async {
@@ -160,7 +160,7 @@ impl Context {
     ///
     /// If the timeout is `None`, it will wait for 30 seconds.
     pub async fn wait_for_reply<M: Into<InputMessage>>(
-        &mut self,
+        &self,
         message: M,
         timeout: Option<u64>,
     ) -> Result<Message, crate::Error> {
@@ -184,7 +184,7 @@ impl Context {
     /// Wait for a message.
     ///
     /// If the timeout is `None`, it will wait for 30 seconds.
-    pub async fn wait_for_message(&mut self, timeout: Option<u64>) -> Option<Message> {
+    pub async fn wait_for_message(&self, timeout: Option<u64>) -> Option<Message> {
         loop {
             if let Some(update) = self.wait_for_update(timeout).await {
                 if let Update::NewMessage(message) = update {
@@ -199,7 +199,7 @@ impl Context {
     /// Wait for a callback query.
     ///
     /// If the timeout is `None`, it will wait for 30 seconds.
-    pub async fn wait_for_callback_query(&mut self, timeout: Option<u64>) -> Option<CallbackQuery> {
+    pub async fn wait_for_callback_query(&self, timeout: Option<u64>) -> Option<CallbackQuery> {
         loop {
             if let Some(update) = self.wait_for_update(timeout).await {
                 if let Update::CallbackQuery(query) = update {
@@ -214,7 +214,7 @@ impl Context {
     /// Wait for a inline query.
     ///
     /// If the timeout is `None`, it will wait for 30 seconds.
-    pub async fn wait_for_inline_query(&mut self, timeout: Option<u64>) -> Option<InlineQuery> {
+    pub async fn wait_for_inline_query(&self, timeout: Option<u64>) -> Option<InlineQuery> {
         loop {
             if let Some(update) = self.wait_for_update(timeout).await {
                 if let Update::InlineQuery(query) = update {
@@ -229,7 +229,7 @@ impl Context {
     /// Wait for a inline send.
     ///
     /// If the timeout is `None`, it will wait for 30 seconds.
-    pub async fn wait_for_inline_send(&mut self, timeout: Option<u64>) -> Option<InlineSend> {
+    pub async fn wait_for_inline_send(&self, timeout: Option<u64>) -> Option<InlineSend> {
         loop {
             if let Some(update) = self.wait_for_update(timeout).await {
                 if let Update::InlineSend(inline_send) = update {
@@ -277,10 +277,15 @@ impl Context {
 
 impl Clone for Context {
     fn clone(&self) -> Self {
+        let upd_receiver = self
+            .upd_receiver
+            .try_lock()
+            .expect("Failed to lock receiver");
+
         Self {
             client: self.client.clone(),
             update: self.update.clone(),
-            upd_receiver: self.upd_receiver.resubscribe(),
+            upd_receiver: Arc::new(Mutex::new(upd_receiver.resubscribe())),
         }
     }
 }
