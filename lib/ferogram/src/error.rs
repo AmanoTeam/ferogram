@@ -22,7 +22,7 @@ impl Error {
     pub fn timeout(time: u64) -> Self {
         Self {
             kind: ErrorKind::Timeout,
-            message: format!("Timeout reached after waiting for {} seconds", time),
+            message: format!("Reached after waiting for {} seconds", time),
         }
     }
 
@@ -30,7 +30,7 @@ impl Error {
     pub fn unknown() -> Self {
         Self {
             kind: ErrorKind::Unknown,
-            message: "Unknown error".to_string(),
+            message: "Undefined error".to_string(),
         }
     }
 }
