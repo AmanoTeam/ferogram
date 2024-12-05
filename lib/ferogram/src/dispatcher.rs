@@ -25,7 +25,7 @@ pub struct Dispatcher {
     /// The main injector.
     injector: di::Injector,
     /// The update sender.
-    upd_sender: Sender<Update>,
+    pub(crate) upd_sender: Sender<Update>,
 
     /// Whether allow the client to handle updates from itself.
     allow_from_self: bool,
@@ -73,7 +73,7 @@ impl Dispatcher {
         let mut injector = di::Injector::default();
 
         let upd_receiver = self.upd_sender.subscribe();
-        let context = Context::new(client, update, upd_receiver);
+        let context = Context::with(client, update, upd_receiver);
         injector.insert(context);
 
         self.upd_sender

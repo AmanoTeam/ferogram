@@ -12,7 +12,7 @@ use std::{net::SocketAddr, path::Path};
 
 use grammers_client::{session::Session, Config, InitParams, ReconnectionPolicy, SignInError};
 
-use crate::{di, utils::prompt, Dispatcher, ErrorHandler, Result};
+use crate::{di, utils::prompt, Context, Dispatcher, ErrorHandler, Result};
 
 /// Wrapper about grammers' `Client` instance.
 pub struct Client {
@@ -143,6 +143,13 @@ impl Client {
     /// Wheter the client is connected.
     pub fn is_connected(&self) -> bool {
         self.is_connected
+    }
+
+    /// Create a new context which not holds an update.
+    pub fn new_ctx(&self) -> Context {
+        let upd_receiver = self.dispatcher.upd_sender.subscribe();
+
+        Context::new(&self.inner_client, upd_receiver)
     }
 
     /// Listen to Telegram's updates and send them to the dispatcher's routers.
