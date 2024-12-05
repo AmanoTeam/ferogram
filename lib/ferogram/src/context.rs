@@ -12,7 +12,7 @@ use std::{pin::pin, sync::Arc, time::Duration};
 
 use futures_util::future::{select, Either};
 use grammers_client::{
-    types::{CallbackQuery, Chat, InlineQuery, InlineSend, InputMessage, Message},
+    types::{CallbackQuery, Chat, InlineQuery, InlineSend, InputMessage, Message, PackedChat},
     InvocationError, Update,
 };
 use tokio::sync::{broadcast::Receiver, Mutex};
@@ -60,9 +60,26 @@ impl Context {
         self.update.as_ref()
     }
 
-    /// Try to return the chat.
-    pub async fn chat(&self) -> Option<Chat> {
-        self.message().await.map(|msg| msg.chat())
+    /// Returns the chat.
+    pub fn chat(&self) -> Option<Chat> {
+        match self.update.as_ref().expect("No update") {
+            Update::NewMessage(message) | Update::MessageEdited(message) => Some(message.chat()),
+            Update::CallbackQuery(query) => Some(query.chat().clone()),
+            _ => None,
+        }
+    }
+
+    /// Returns the sender.
+    pub fn sender(&self) -> Option<Chat> {
+        match self.update.as_ref().expect("No update") {
+            Update::NewMessage(message) | Update::MessageEdited(message) => {
+                Some(message.sender().expect("No sender"))
+            }
+            Update::CallbackQuery(query) => Some(query.sender().clone()),
+            Update::InlineQuery(query) => Some(Chat::User(query.sender().clone())),
+            Update::InlineSend(inline_send) => Some(Chat::User(inline_send.sender().clone())),
+            _ => None,
+        }
     }
 
     /// Try to return the message.
@@ -78,31 +95,41 @@ impl Context {
         }
     }
 
-    /// Try to return the callback query.
-    pub async fn callback_query(&self) -> Option<CallbackQuery> {
+    /// Returns the callback query.
+    pub fn callback_query(&self) -> Option<CallbackQuery> {
         match self.update.as_ref().expect("No update") {
             Update::CallbackQuery(query) => Some(query.clone()),
             _ => None,
         }
     }
 
-    /// Try to return the inline query.
-    pub async fn inline_query(&self) -> Option<InlineQuery> {
+    /// Returns the inline query.
+    pub fn inline_query(&self) -> Option<InlineQuery> {
         match self.update.as_ref().expect("No update") {
             Update::InlineQuery(query) => Some(query.clone()),
             _ => None,
         }
     }
 
-    /// Try to return the inline send.
-    pub async fn inline_send(&self) -> Option<InlineSend> {
+    /// Returns the inline send.
+    pub fn inline_send(&self) -> Option<InlineSend> {
         match self.update.as_ref().expect("No update") {
             Update::InlineSend(inline_send) => Some(inline_send.clone()),
             _ => None,
         }
     }
 
-    /// Try to directly reply to the message held by the update.
+    /// Try to send a message to the chat.
+    pub async fn send<M: Into<InputMessage>>(
+        &self,
+        message: M,
+    ) -> Result<Message, InvocationError> {
+        self.client
+            .send_message(self.chat().expect("No chat"), message)
+            .await
+    }
+
+    /// Try to reply to the message held by the update.
     pub async fn reply<M: Into<InputMessage>>(
         &self,
         message: M,
@@ -114,7 +141,7 @@ impl Context {
         }
     }
 
-    /// Try to directly edit the message held by the update.
+    /// Try to edit the message held by the update.
     pub async fn edit<M: Into<InputMessage>>(&self, message: M) -> Result<(), InvocationError> {
         if let Some(msg) = self.message().await {
             msg.edit(message).await
@@ -123,12 +150,58 @@ impl Context {
         }
     }
 
-    /// Try to directly delete the message held by the update.
+    /// Try to delete the message held by the update.
     pub async fn delete(&self) -> Result<(), InvocationError> {
         if let Some(msg) = self.message().await {
             msg.delete().await
         } else {
             panic!("Cannot reply to this update")
+        }
+    }
+
+    /// Try to forward the message held by the update to a chat.
+    pub async fn forward_to<C: Into<PackedChat>>(
+        &self,
+        chat: C,
+    ) -> Result<Message, InvocationError> {
+        if let Some(msg) = self.message().await {
+            msg.forward_to(chat).await
+        } else {
+            panic!("Cannot forward this update")
+        }
+    }
+
+    /// Try to forward the message held by the update to the client's saved messages.
+    pub async fn forward_to_self(&self) -> Result<Message, InvocationError> {
+        if let Some(msg) = self.message().await {
+            let chat = self.client().get_me().await.expect("Failed to get me");
+
+            msg.forward_to(chat).await
+        } else {
+            panic!("Cannot forward this update")
+        }
+    }
+
+    /// Try to edit or reply to the message held by the update.
+    pub async fn edit_or_reply<M: Into<InputMessage>>(
+        &self,
+        message: M,
+    ) -> Result<Message, InvocationError> {
+        if let Some(msg) = self.message().await {
+            if let Some(sender) = msg.sender() {
+                if let Chat::User(user) = sender {
+                    if user.is_self() {
+                        msg.edit(message).await.expect("Failed to edit message");
+                        msg.refetch().await.expect("Failed to refetch message");
+
+                        return Ok(msg);
+                    }
+                }
+            }
+
+            return msg.reply(message).await;
+        } else {
+            panic!("Cannot edit or reply to this update")
         }
     }
 
@@ -268,6 +341,27 @@ impl Context {
                 return Err(crate::Error::timeout(timeout.unwrap()));
             }
         }
+    }
+
+    /// Returns if the chat is private (an user).
+    pub fn is_private(&self) -> bool {
+        self.chat()
+            .map(|chat| matches!(chat, Chat::User(_)))
+            .unwrap_or(false)
+    }
+
+    /// Returns if the chat is a group.
+    pub fn is_group(&self) -> bool {
+        self.chat()
+            .map(|chat| matches!(chat, Chat::Group(_)))
+            .unwrap_or(false)
+    }
+
+    /// Returns if the chat is a channel.
+    pub fn is_channel(&self) -> bool {
+        self.chat()
+            .map(|chat| matches!(chat, Chat::Channel(_)))
+            .unwrap_or(false)
     }
 
     /// Returns if the update is a message.
