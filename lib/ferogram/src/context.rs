@@ -107,44 +107,32 @@ impl Context {
         &self,
         message: M,
     ) -> Result<Message, InvocationError> {
-        match self.update.as_ref().expect("No update") {
-            Update::NewMessage(msg) | Update::MessageEdited(msg) => msg.reply(message).await,
-            Update::CallbackQuery(query) => {
-                let msg = query.load_message().await.expect("Failed to load message");
-
-                msg.reply(message).await
-            }
-            _ => panic!("Cannot reply to this update"),
+        if let Some(msg) = self.message().await {
+            msg.reply(message).await
+        } else {
+            panic!("Cannot reply to this update")
         }
     }
 
     /// Try to directly edit the message held by the update.
     pub async fn edit<M: Into<InputMessage>>(&self, message: M) -> Result<(), InvocationError> {
-        match self.update.as_ref().expect("No update") {
-            Update::NewMessage(msg) | Update::MessageEdited(msg) => msg.edit(message).await,
-            Update::CallbackQuery(query) => {
-                let msg = query.load_message().await.expect("Failed to load message");
-
-                msg.edit(message).await
-            }
-            _ => panic!("Cannot edit this update"),
+        if let Some(msg) = self.message().await {
+            msg.edit(message).await
+        } else {
+            panic!("Cannot reply to this update")
         }
     }
 
     /// Try to directly delete the message held by the update.
     pub async fn delete(&self) -> Result<(), InvocationError> {
-        match self.update.as_ref().expect("No update") {
-            Update::NewMessage(msg) | Update::MessageEdited(msg) => msg.delete().await,
-            Update::CallbackQuery(query) => {
-                let msg = query.load_message().await.expect("Failed to load message");
-
-                msg.delete().await
-            }
-            _ => panic!("Cannot delete this update"),
+        if let Some(msg) = self.message().await {
+            msg.delete().await
+        } else {
+            panic!("Cannot reply to this update")
         }
     }
 
-    /// Wait for an update.
+    /// Waits for an update.
     ///
     /// If the timeout is `None`, it will wait for 30 seconds.
     pub async fn wait_for_update(&self, timeout: Option<u64>) -> Option<Update> {
@@ -165,7 +153,30 @@ impl Context {
         }
     }
 
-    /// Wait for a reply to a message.
+    /// Waits for an update that matches the filter.
+    ///
+    /// If the timeout is `None`, it will wait for 30 seconds.
+    /* pub async fn wait_for<F: Filter>(
+        &self,
+        mut filter: F,
+        timeout: Option<u64>,
+    ) -> Result<Update, crate::Error> {
+        loop {
+            if let Some(update) = self.wait_for_update(timeout).await {
+                if filter
+                    .check(self.client.clone(), update.clone())
+                    .await
+                    .is_continue()
+                {
+                    return Ok(update);
+                }
+            } else {
+                return Err(crate::Error::timeout(timeout.unwrap()));
+            }
+        }
+    } */
+
+    /// Waits for a reply to a message.
     ///
     /// If the timeout is `None`, it will wait for 30 seconds.
     pub async fn wait_for_reply<M: Into<InputMessage>>(
@@ -190,7 +201,7 @@ impl Context {
         }
     }
 
-    /// Wait for a message.
+    /// Waits for a message.
     ///
     /// If the timeout is `None`, it will wait for 30 seconds.
     pub async fn wait_for_message(&self, timeout: Option<u64>) -> Result<Message, crate::Error> {
@@ -205,7 +216,7 @@ impl Context {
         }
     }
 
-    /// Wait for a callback query.
+    /// Waits for a callback query.
     ///
     /// If the timeout is `None`, it will wait for 30 seconds.
     pub async fn wait_for_callback_query(
@@ -223,7 +234,7 @@ impl Context {
         }
     }
 
-    /// Wait for a inline query.
+    /// Waits for a inline query.
     ///
     /// If the timeout is `None`, it will wait for 30 seconds.
     pub async fn wait_for_inline_query(
@@ -241,7 +252,7 @@ impl Context {
         }
     }
 
-    /// Wait for a inline send.
+    /// Waits for a inline send.
     ///
     /// If the timeout is `None`, it will wait for 30 seconds.
     pub async fn wait_for_inline_send(

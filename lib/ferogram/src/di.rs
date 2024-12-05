@@ -134,7 +134,7 @@ pub type Value = Arc<dyn Any + Send + Sync>;
 #[async_trait]
 /// Handler trait.
 pub trait Handler: CloneHandler + Send + Sync + 'static {
-    /// Handle the request.
+    /// Handles the request.
     async fn handle(&mut self, injector: &mut Injector) -> Result<()>;
 }
 
@@ -186,15 +186,17 @@ impl_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
 impl_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
 
 #[derive(Clone)]
+/// Handler function holder.
 pub struct HandlerFunc<Input, F> {
     f: F,
     marker: PhantomData<fn() -> Input>,
 }
 
-/// Converts a function into a [`Handler`].
+/// A trait allows converting a function into a [`Handler`].
 pub trait IntoHandler<Input>: Send {
     type Handler: Handler + Send;
 
+    /// Converts the function into a [`Handler`].
     fn into_handler(self) -> Self::Handler;
 }
 
