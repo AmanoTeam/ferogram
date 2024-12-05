@@ -50,6 +50,20 @@ impl Context {
         }
     }
 
+    /// Clones the context with a new update.
+    pub fn clone_with(&self, update: &Update) -> Self {
+        let upd_receiver = self
+            .upd_receiver
+            .try_lock()
+            .expect("Failed to lock receiver");
+
+        Self {
+            client: self.client.clone(),
+            update: Some(update.clone()),
+            upd_receiver: Arc::new(Mutex::new(upd_receiver.resubscribe())),
+        }
+    }
+
     /// Returns the client.
     pub fn client(&self) -> &grammers_client::Client {
         &self.client
