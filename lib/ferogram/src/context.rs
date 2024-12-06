@@ -12,7 +12,10 @@ use std::{pin::pin, sync::Arc, time::Duration};
 
 use futures_util::future::{select, Either};
 use grammers_client::{
-    types::{CallbackQuery, Chat, InlineQuery, InlineSend, InputMessage, Message, PackedChat},
+    types::{
+        ActionSender, CallbackQuery, Chat, InlineQuery, InlineSend, InputMessage, Message,
+        PackedChat, User,
+    },
     InvocationError, Update,
 };
 use tokio::sync::{broadcast::Receiver, Mutex};
@@ -96,7 +99,9 @@ impl Context {
         }
     }
 
-    /// Try to return the message.
+    /// Returns the message held by the update.
+    ///
+    /// If the update is a callback query, it will load the message.
     pub async fn message(&self) -> Option<Message> {
         match self.update.as_ref().expect("No update") {
             Update::NewMessage(message) | Update::MessageEdited(message) => Some(message.clone()),
@@ -133,7 +138,16 @@ impl Context {
         }
     }
 
-    /// Try to send a message to the chat.
+    /// Tries to edit the message held by the update.
+    pub async fn edit<M: Into<InputMessage>>(&self, message: M) -> Result<(), InvocationError> {
+        if let Some(msg) = self.message().await {
+            msg.edit(message).await
+        } else {
+            panic!("Cannot edit this message")
+        }
+    }
+
+    /// Tries to send a message to the chat.
     pub async fn send<M: Into<InputMessage>>(
         &self,
         message: M,
@@ -143,7 +157,12 @@ impl Context {
             .await
     }
 
-    /// Try to reply to the message held by the update.
+    /// Sends a message action.
+    pub async fn action<C: Into<PackedChat>>(&self, chat: C) -> ActionSender {
+        self.client.action(chat)
+    }
+
+    /// Tries to reply to the message held by the update.
     pub async fn reply<M: Into<InputMessage>>(
         &self,
         message: M,
@@ -151,29 +170,20 @@ impl Context {
         if let Some(msg) = self.message().await {
             msg.reply(message).await
         } else {
-            panic!("Cannot reply to this update")
+            panic!("Cannot reply to this message")
         }
     }
 
-    /// Try to edit the message held by the update.
-    pub async fn edit<M: Into<InputMessage>>(&self, message: M) -> Result<(), InvocationError> {
-        if let Some(msg) = self.message().await {
-            msg.edit(message).await
-        } else {
-            panic!("Cannot reply to this update")
-        }
-    }
-
-    /// Try to delete the message held by the update.
+    /// Tries to delete the message held by the update.
     pub async fn delete(&self) -> Result<(), InvocationError> {
         if let Some(msg) = self.message().await {
             msg.delete().await
         } else {
-            panic!("Cannot reply to this update")
+            panic!("Cannot delete this message")
         }
     }
 
-    /// Try to forward the message held by the update to a chat.
+    /// Tries to forward the message held by the update to a chat.
     pub async fn forward_to<C: Into<PackedChat>>(
         &self,
         chat: C,
@@ -181,22 +191,22 @@ impl Context {
         if let Some(msg) = self.message().await {
             msg.forward_to(chat).await
         } else {
-            panic!("Cannot forward this update")
+            panic!("Cannot forward this message")
         }
     }
 
-    /// Try to forward the message held by the update to the client's saved messages.
+    /// Tries to forward the message held by the update to the client's saved messages.
     pub async fn forward_to_self(&self) -> Result<Message, InvocationError> {
         if let Some(msg) = self.message().await {
             let chat = self.client().get_me().await.expect("Failed to get me");
 
             msg.forward_to(chat).await
         } else {
-            panic!("Cannot forward this update")
+            panic!("Cannot forward this message")
         }
     }
 
-    /// Try to edit or reply to the message held by the update.
+    /// Tries to edit or reply to the message held by the update.
     pub async fn edit_or_reply<M: Into<InputMessage>>(
         &self,
         message: M,
@@ -215,8 +225,112 @@ impl Context {
 
             return msg.reply(message).await;
         } else {
-            panic!("Cannot edit or reply to this update")
+            panic!("Cannot edit or reply to this message")
         }
+    }
+
+    /// Returns the message in the chat with the given ID.
+    pub async fn get_message(&self, message_id: i32) -> Result<Option<Message>, InvocationError> {
+        let mut iter = self.client.iter_messages(self.chat().expect("No chat"));
+
+        while let Some(message) = iter.next().await.expect("Failed to get message") {
+            if message.id() == message_id {
+                return Ok(Some(message));
+            }
+        }
+
+        Ok(None)
+    }
+
+    /// Returns the messages in the chat.
+    pub async fn get_messages(
+        &self,
+        limit: Option<usize>,
+    ) -> Result<Vec<Message>, InvocationError> {
+        let mut iter = self.client.iter_messages(self.chat().expect("No chat"));
+        let mut messages = Vec::new();
+
+        if let Some(n) = limit {
+            iter = iter.limit(n);
+        }
+
+        while let Some(message) = iter.next().await.expect("Failed to get message") {
+            messages.push(message);
+        }
+
+        Ok(messages)
+    }
+
+    /// Returns the total number of messages in the chat.
+    pub async fn total_messages(&self) -> Result<usize, InvocationError> {
+        self.client
+            .iter_messages(self.chat().expect("No chat"))
+            .total()
+            .await
+    }
+
+    /// Returns the messages in the chat from the given user.
+    pub async fn get_messages_from(
+        &self,
+        user: &User,
+        limit: Option<usize>,
+    ) -> Result<Vec<Message>, InvocationError> {
+        let mut iter = self.client.iter_messages(self.chat().expect("No chat"));
+        let mut messages = Vec::new();
+
+        if let Some(n) = limit {
+            iter = iter.limit(n);
+        }
+
+        while let Some(message) = iter.next().await.expect("Failed to get message") {
+            if let Some(sender) = message.sender() {
+                if matches!(sender, Chat::User(u) if u.id() == user.id()) {
+                    messages.push(message);
+                }
+            }
+        }
+
+        Ok(messages)
+    }
+
+    /// Returns the messages in the chat with the given IDs.
+    pub async fn get_messages_with_ids(
+        &self,
+        message_ids: Vec<i32>,
+    ) -> Result<Vec<Message>, InvocationError> {
+        let mut iter = self.client.iter_messages(self.chat().expect("No chat"));
+        let mut messages = Vec::new();
+
+        while let Some(message) = iter.next().await.expect("Failed to get message") {
+            if message_ids.contains(&message.id()) {
+                messages.push(message);
+            }
+        }
+
+        Ok(messages)
+    }
+
+    /// Returns the messages in the chat from the client.
+    pub async fn get_messages_from_self(
+        &self,
+        limit: Option<usize>,
+    ) -> Result<Vec<Message>, InvocationError> {
+        let mut iter = self.client.iter_messages(self.chat().expect("No chat"));
+        let mut messages = Vec::new();
+
+        if let Some(n) = limit {
+            iter = iter.limit(n);
+        }
+
+        while let Some(message) = iter.next().await.expect("Failed to get message") {
+            if let Some(sender) = message.sender() {
+                if matches!(sender, Chat::User(user) if user.is_self()) {
+                    messages.push(message);
+                }
+            }
+        }
+
+        Ok(messages)
     }
 
     /// Waits for an update.
@@ -263,7 +377,7 @@ impl Context {
         }
     } */
 
-    /// Waits for a reply to a message.
+    /// Sends a message and waits for a reply to it.
     ///
     /// If the timeout is `None`, it will wait for 30 seconds.
     pub async fn wait_for_reply<M: Into<InputMessage>>(
