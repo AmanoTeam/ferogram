@@ -11,7 +11,7 @@
 use futures_util::Future;
 use std::{
     any::{Any, TypeId},
-    collections::{hash_map::Entry, HashMap},
+    collections::{hash_map::Entry, HashMap, VecDeque},
     marker::PhantomData,
     sync::Arc,
 };
@@ -30,7 +30,7 @@ pub type Endpoint = Box<dyn Handler>;
 /// Used to inject dependencies into handlers.
 #[derive(Clone, Debug, Default)]
 pub struct Injector {
-    resources: HashMap<TypeId, Vec<Resource>>,
+    resources: HashMap<TypeId, VecDeque<Resource>>,
 }
 
 impl Injector {
@@ -43,8 +43,8 @@ impl Injector {
     pub fn insert<R: Clone + Send + Sync + 'static>(&mut self, value: R) {
         self.resources
             .entry(TypeId::of::<R>())
-            .or_insert_with(Vec::new)
-            .push(Resource::new(value));
+            .or_insert_with(VecDeque::new)
+            .push_back(Resource::new(value));
     }
 
     /// Insert a new resource.
@@ -58,7 +58,7 @@ impl Injector {
         for (type_id, values) in other.resources.drain() {
             self.resources
                 .entry(type_id)
-                .or_insert_with(Vec::new)
+                .or_insert_with(VecDeque::new)
                 .extend(values);
         }
     }
@@ -66,16 +66,16 @@ impl Injector {
     /// Remove a resource.
     pub fn take<R: Send + Sync + 'static>(&mut self) -> Option<Arc<R>> {
         match self.resources.entry(TypeId::of::<R>()) {
-            Entry::Occupied(mut e) => e.get_mut().pop().unwrap().to(),
+            Entry::Occupied(mut e) => e.get_mut().pop_front().unwrap().to(),
             Entry::Vacant(_) => None,
         }
     }
 
     /// Get a reference for a resource.
-    pub fn get<R: Send + Sync + 'static>(&self) -> Option<&R> {
+    pub fn get<R: Send + Sync + 'static>(&mut self) -> Option<&R> {
         self.resources
             .get(&TypeId::of::<R>())
-            .and_then(|values| values.last())
+            .and_then(|values| values.front())
             .and_then(|resource| resource.to_ref())
     }
 }

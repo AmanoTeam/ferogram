@@ -8,6 +8,8 @@
 
 //! Error module.
 
+use grammers_client::InvocationError;
+
 /// The error type for this library.
 #[derive(Debug)]
 pub struct Error {
@@ -23,6 +25,14 @@ impl Error {
         Self {
             kind: ErrorKind::Timeout,
             message: format!("Reached after waiting for {} seconds", time),
+        }
+    }
+
+    // Creates a new telegram error.
+    pub fn telegram<E: ToString>(err: E) -> Self {
+        Self {
+            kind: ErrorKind::Telegram,
+            message: err.to_string(),
         }
     }
 
@@ -46,9 +56,11 @@ impl std::error::Error for Error {}
 /// The kind of error.
 #[derive(Debug, Default)]
 pub enum ErrorKind {
-    /// The time has run out
+    /// The time has run out.
     Timeout,
-    /// The error is unknown
+    /// The error is from Telegram.
+    Telegram,
+    /// The error is unknown.
     #[default]
     Unknown,
 }
@@ -57,7 +69,14 @@ impl std::fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Timeout => write!(f, "Timeout"),
+            Self::Telegram => write!(f, "Telegram"),
             Self::Unknown => write!(f, "Unknown"),
         }
+    }
+}
+
+impl From<InvocationError> for Error {
+    fn from(err: InvocationError) -> Self {
+        Error::telegram(err)
     }
 }

@@ -21,17 +21,20 @@ pub struct And {
 impl Filter for And {
     async fn check(&mut self, client: Client, update: Update) -> Flow {
         let mut first_flow = self.first.check(client.clone(), update.clone()).await;
-        let second_flow = self.second.check(client, update).await;
 
-        if first_flow.is_continue() && second_flow.is_continue() {
-            let first_injector = &mut first_flow.injector;
-            let mut second_injector = second_flow.injector;
+        if first_flow.is_continue() {
+            let second_flow = self.second.check(client, update).await;
 
-            first_injector.extend(&mut second_injector);
+            if second_flow.is_continue() {
+                let first_injector = &mut first_flow.injector;
+                let mut second_injector = second_flow.injector;
 
-            first_flow
-        } else {
-            flow::break_now()
+                first_injector.extend(&mut second_injector);
+
+                return first_flow;
+            }
         }
+
+        flow::break_now()
     }
 }

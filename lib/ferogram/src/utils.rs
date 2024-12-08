@@ -33,3 +33,8 @@ pub fn prompt(message: impl Into<String>, password: bool) -> Result<String> {
 
     Ok(line)
 }
+
+/// Convert bytes to string.
+pub fn bytes_to_string(bytes: &[u8]) -> String {
+    String::from_utf8_lossy(bytes).to_string()
+}

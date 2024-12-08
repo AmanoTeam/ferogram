@@ -40,17 +40,17 @@ pub struct Client {
 }
 
 impl Client {
-    /// Create a new bot instance.
+    /// Creates a new bot instance.
     pub fn bot<T: Into<String>>(token: T) -> ClientBuilder {
         ClientBuilder::bot(token)
     }
 
-    /// Create a new user instance.
+    /// Creates a new user instance.
     pub fn user<N: Into<String>>(phone_number: N) -> ClientBuilder {
         ClientBuilder::user(phone_number)
     }
 
-    /// Create a new `Client` instance from environment variables.
+    /// Creates a new `Client` instance from environment variables.
     ///
     /// It try to read the following env variables:
     ///
@@ -129,12 +129,12 @@ impl Client {
         Ok(self)
     }
 
-    /// Get the inner grammers' `Client` instance.
+    /// Gets the inner grammers' `Client` instance.
     pub fn inner(&self) -> &grammers_client::Client {
         &self.inner_client
     }
 
-    /// Configure the dispatcher.
+    /// Configures the dispatcher.
     pub fn dispatcher<D: FnOnce(Dispatcher) -> Dispatcher>(mut self, dispatcher: D) -> Self {
         self.dispatcher = dispatcher(self.dispatcher);
         self
@@ -145,7 +145,7 @@ impl Client {
         self.is_connected
     }
 
-    /// Create a new context which not holds an update.
+    /// Creates a new context which not holds an update.
     pub fn new_ctx(&self) -> Context {
         let upd_receiver = self.dispatcher.upd_sender.subscribe();
 
@@ -255,7 +255,7 @@ pub struct ClientBuilder {
 }
 
 impl ClientBuilder {
-    /// Create a new builder to bot instance.
+    /// Creates a new builder to bot instance.
     pub fn bot<T: Into<String>>(token: T) -> Self {
         Self {
             client_type: ClientType::Bot(token.into()),
@@ -264,7 +264,7 @@ impl ClientBuilder {
         }
     }
 
-    /// Create a new builder to user instance.
+    /// Creates a new builder to user instance.
     pub fn user<N: Into<String>>(phone_number: N) -> Self {
         Self {
             client_type: ClientType::User(phone_number.into()),
@@ -273,7 +273,7 @@ impl ClientBuilder {
         }
     }
 
-    /// Build the `Client` instance.
+    /// Builds the `Client` instance.
     pub async fn build(self) -> Result<Client> {
         let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
 
@@ -301,7 +301,7 @@ impl ClientBuilder {
         })
     }
 
-    /// Build and connect the `Client` instance.
+    /// Builds and connects the `Client` instance.
     ///
     /// Connects to the Telegram server, but don't listen to updates.
     pub async fn build_and_connect(self) -> Result<Client> {
@@ -421,7 +421,7 @@ impl ClientBuilder {
         self
     }
 
-    /// Wait for a `Ctrl + C` signal to close the connection and exit the app.
+    /// Waits for a `Ctrl + C` signal to close the connection and exit the app.
     ///
     /// Otherwise the code will continue running until it finds the end.
     pub fn wait_for_ctrl_c(mut self) -> Self {
@@ -429,16 +429,15 @@ impl ClientBuilder {
         self
     }
 
-    /// Set the reconnection policy.
+    /// Sets the reconnection policy.
     ///
-    /// Executed when the client loses the connection or the
-    /// Telegram server closes it.
+    /// Executed when the client loses the connection or the Telegram server closes it.
     pub fn reconnection_policy<P: ReconnectionPolicy>(mut self, policy: &'static P) -> Self {
         self.init_params.reconnection_policy = policy;
         self
     }
 
-    /// Set the global error handler.
+    /// Sets the global error handler.
     ///
     /// Executed when any `handler` returns an error.
     pub fn on_err<H: ErrorHandler>(mut self, handler: H) -> Self {
@@ -446,10 +445,9 @@ impl ClientBuilder {
         self
     }
 
-    /// Set the exit handler.
+    /// Sets the exit handler.
     ///
-    /// Only is called when used with `wait_for_ctrl_c` and the
-    /// client is runned by `run()`.
+    /// Only is called when used with `wait_for_ctrl_c` and the client is runned by `run()`.
     ///
     /// Executed when the client is about to exit.
     pub fn on_exit<I, H: di::Handler>(
@@ -460,7 +458,7 @@ impl ClientBuilder {
         self
     }
 
-    /// Set the ready handler.
+    /// Sets the ready handler.
     ///
     /// Only is called when the client is runned by `run()`.
     ///
