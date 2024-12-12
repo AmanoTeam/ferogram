@@ -17,15 +17,13 @@ use grammers_client::{Client, Update};
 pub use crate::filters::*;
 use crate::{flow, Flow};
 
-/// Update filter.
-///
-/// Checked at each update to know if the update should be handled.
+/// A filter.
 #[async_trait]
 pub trait Filter: CloneFilter + Send + Sync + 'static {
-    /// Check if the update should be handled.
+    /// Checks if the update should be handled.
     async fn check(&mut self, client: Client, update: Update) -> Flow;
 
-    /// Wrappers `self` and `second` into [`And`] filter.
+    /// Wrappes `self` and `second` into [`And`] filter.
     fn and<S: Filter>(self, second: S) -> And
     where
         Self: Sized,
@@ -36,7 +34,7 @@ pub trait Filter: CloneFilter + Send + Sync + 'static {
         }
     }
 
-    /// Wrappers `self` and `other` into [`Or`] filter.
+    /// Wrappes `self` and `other` into [`Or`] filter.
     fn or<O: Filter>(self, other: O) -> Or
     where
         Self: Sized,
@@ -47,7 +45,7 @@ pub trait Filter: CloneFilter + Send + Sync + 'static {
         }
     }
 
-    /// Wrappers `self` into [`Not`] filter.
+    /// Wrappes `self` into [`Not`] filter.
     fn not(self) -> Not
     where
         Self: Sized,
@@ -86,7 +84,7 @@ where
     }
 }
 
-/// A trait allows cloning the filter.
+/// A trait that allows cloning the filter.
 pub trait CloneFilter {
     /// Clones the filter.
     fn clone_filter(&self) -> Box<dyn Filter>;

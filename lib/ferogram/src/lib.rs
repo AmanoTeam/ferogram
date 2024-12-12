@@ -40,9 +40,9 @@ pub use router::Router;
 pub use ferogram_macros as macros;
 
 #[cfg(feature = "macros")]
-/// Construct [`di::Injector`] with a list of dependencies effortlessly.
+/// Constructs a [`di::Injector`] with a list of dependencies effortlessly.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
 /// deps![Database::connect().await, I18n::load()]
@@ -65,16 +65,32 @@ pub mod prelude {
 /// [`Result`] with [`Error`].
 pub type Result<T> = std::result::Result<T, error_handler::Error>;
 
-/// Wait for a `Ctrl+C` signal and keep the process alive.
+/// Waits for a `Ctrl+C` signal and keep the process alive.
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example() {
+/// ferogram::wait_for_ctrl_c().await;
+/// # }
+/// ```
 pub async fn wait_for_ctrl_c() {
     tokio::signal::ctrl_c()
         .await
         .expect("Failed to listen for Ctrl+C signal");
 }
 
-/// Wait for a `Ctrl+C` signal and keep the process alive.
+/// Waits for a `Ctrl+C` signal and keep the process alive.
 ///
 /// Same as [`wait_for_ctrl_c`].
+///
+/// # Examples
+///
+/// ```no_run
+/// # async fn example() {
+/// ferogram::idle().await;
+/// # }
+/// ```
 pub async fn idle() {
     wait_for_ctrl_c().await
 }

@@ -8,19 +8,22 @@
 
 //! Context module.
 
-use std::{pin::pin, sync::Arc, time::Duration};
+use std::{io, path::Path, pin::pin, sync::Arc, time::Duration};
 
 use futures_util::future::{select, Either};
 use grammers_client::{
     types::{
-        ActionSender, CallbackQuery, Chat, InlineQuery, InlineSend, InputMessage, Message,
-        PackedChat, User,
+        media::Uploaded, ActionSender, CallbackQuery, Chat, InlineQuery, InlineSend, InputMessage,
+        Message, PackedChat, User,
     },
     InvocationError, Update,
 };
-use tokio::sync::{broadcast::Receiver, Mutex};
+use tokio::{
+    io::AsyncRead,
+    sync::{broadcast::Receiver, Mutex},
+};
 
-use crate::utils::bytes_to_string;
+use crate::{utils::bytes_to_string, Filter};
 
 /// The context of an update.
 pub struct Context {
@@ -57,7 +60,15 @@ impl Context {
 
     /// Clones the context with a new update.
     ///
-    /// This is useful for creating a new context with a new update.
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let update = ctx.wait_for_update().await.unwrap();
+    /// let new_ctx = ctx.clone_with(&update);
+    /// # }
+    /// ```
     pub fn clone_with(&self, update: &Update) -> Self {
         let upd_receiver = self
             .upd_receiver
@@ -72,16 +83,45 @@ impl Context {
     }
 
     /// Returns the client.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let client = ctx.client();
+    /// # }
+    /// ```
     pub fn client(&self) -> &grammers_client::Client {
         &self.client
     }
 
     /// Returns the update.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let update = ctx.update();
+    /// # }
+    /// ```
     pub fn update(&self) -> Option<&Update> {
         self.update.as_ref()
     }
 
     /// Returns the chat.
+    ///
+    /// Returns `None` if the update is not/not from a message.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let chat = ctx.chat();
+    /// # }
+    /// ```
     pub fn chat(&self) -> Option<Chat> {
         match self.update.as_ref().expect("No update") {
             Update::NewMessage(message) | Update::MessageEdited(message) => Some(message.chat()),
@@ -91,6 +131,17 @@ impl Context {
     }
 
     /// Returns the text of the message.
+    ///
+    /// Returns `None` if the update is not/not from a message.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let text = ctx.text();
+    /// # }
+    /// ```
     pub fn text(&self) -> Option<String> {
         match self.update.as_ref().expect("No update") {
             Update::NewMessage(message) | Update::MessageEdited(message) => {
@@ -101,6 +152,17 @@ impl Context {
     }
 
     /// Returns the sender.
+    ///
+    /// Returns `None` if the update not has a sender.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let sender = ctx.sender();
+    /// # }
+    /// ```
     pub fn sender(&self) -> Option<Chat> {
         match self.update.as_ref().expect("No update") {
             Update::NewMessage(message) | Update::MessageEdited(message) => {
@@ -114,6 +176,17 @@ impl Context {
     }
 
     /// Returns the data of the update.
+    ///
+    /// Returns `None` if the update is not/not from a callback query or inline query.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let query = ctx.query();
+    /// # }
+    /// ```
     pub fn query(&self) -> Option<String> {
         match self.update.as_ref().expect("No update") {
             Update::CallbackQuery(query) => Some(bytes_to_string(query.data())),
@@ -126,6 +199,17 @@ impl Context {
     /// Returns the message held by the update.
     ///
     /// If the update is a callback query, it will load the message.
+    ///
+    /// Returns `None` if the update is not/not from a message.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let message = ctx.message().await;
+    /// # }
+    /// ```
     pub async fn message(&self) -> Option<Message> {
         match self.update.as_ref().expect("No update") {
             Update::NewMessage(message) | Update::MessageEdited(message) => Some(message.clone()),
@@ -139,6 +223,17 @@ impl Context {
     }
 
     /// Returns the callback query.
+    ///
+    /// Returns `None` if the update is not a callback query.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let query = ctx.callback_query();
+    /// # }
+    /// ```
     pub fn callback_query(&self) -> Option<CallbackQuery> {
         match self.update.as_ref().expect("No update") {
             Update::CallbackQuery(query) => Some(query.clone()),
@@ -147,6 +242,17 @@ impl Context {
     }
 
     /// Returns the inline query.
+    ///
+    /// Returns `None` if the update is not an inline query.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let query = ctx.inline_query();
+    /// # }
+    /// ```
     pub fn inline_query(&self) -> Option<InlineQuery> {
         match self.update.as_ref().expect("No update") {
             Update::InlineQuery(query) => Some(query.clone()),
@@ -155,6 +261,17 @@ impl Context {
     }
 
     /// Returns the inline send.
+    ///
+    /// Returns `None` if the update is not an inline send.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let inline_send = ctx.inline_send();
+    /// # }
+    /// ```
     pub fn inline_send(&self) -> Option<InlineSend> {
         match self.update.as_ref().expect("No update") {
             Update::InlineSend(inline_send) => Some(inline_send.clone()),
@@ -165,6 +282,21 @@ impl Context {
     /// Tries to edit the message held by the update.
     ///
     /// If the message is from the client, it will be edited.
+    ///
+    /// Returns `Ok(())` if the message was edited.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// ctx.edit("Hello, world!").await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message could not be edited.
     pub async fn edit<M: Into<InputMessage>>(&self, message: M) -> Result<(), InvocationError> {
         if let Some(msg) = self.message().await {
             msg.edit(message).await
@@ -174,21 +306,59 @@ impl Context {
     }
 
     /// Tries to send a message to the chat.
+    ///
+    /// If the chat is not found, it will panic.
+    ///
+    /// Returns the sent message.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// ctx.send("Hello, world!").await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message could not be sent.
     pub async fn send<M: Into<InputMessage>>(
         &self,
         message: M,
     ) -> Result<Message, InvocationError> {
-        self.client
-            .send_message(self.chat().expect("No chat"), message)
-            .await
+        if let Some(msg) = self.message().await {
+            msg.respond(message).await
+        } else {
+            self.client
+                .send_message(self.chat().expect("No chat"), message)
+                .await
+        }
     }
 
     /// Sends a message action.
+    ///
+    /// Returns the action sender.
     pub async fn action<C: Into<PackedChat>>(&self, chat: C) -> ActionSender {
         self.client.action(chat)
     }
 
     /// Tries to reply to the message held by the update.
+    ///
+    /// Returns the replied message.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// ctx.reply("Hello, world!").await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message could not be replied.
     pub async fn reply<M: Into<InputMessage>>(
         &self,
         message: M,
@@ -203,6 +373,21 @@ impl Context {
     /// Tries to delete the message held by the update.
     ///
     /// If the message is from the client, it will be deleted.
+    ///
+    /// Returns `Ok(())` if the message was deleted.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// ctx.delete().await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message could not be deleted.
     pub async fn delete(&self) -> Result<(), InvocationError> {
         if let Some(msg) = self.message().await {
             msg.delete().await
@@ -213,7 +398,21 @@ impl Context {
 
     /// Tries to refetch the message held by the update.
     ///
-    /// This is useful for updating the message.
+    /// Returns `Ok(())` if the message was refetched.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// ctx.edit("Hello, world!").await?;
+    /// ctx.refetch().await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message could not be refetched.
     pub async fn refetch(&self) -> Result<(), InvocationError> {
         match self.update.as_ref().expect("No update") {
             Update::NewMessage(message) | Update::MessageEdited(message) => message.refetch().await,
@@ -223,7 +422,20 @@ impl Context {
 
     /// Tries to get the message that this message is replying to.
     ///
-    /// If the message is not a reply, it will return `None`.
+    /// Returns `None` if the message is not replying to another message.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let reply = ctx.get_reply().await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the reply message could not be retrieved.
     pub async fn get_reply(&self) -> Result<Option<Message>, InvocationError> {
         if let Some(msg) = self.message().await {
             msg.get_reply().await
@@ -233,6 +445,22 @@ impl Context {
     }
 
     /// Tries to forward the message held by the update to a chat.
+    ///
+    /// Returns the forwarded message.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let chat = ctx.chat().unwrap();
+    /// ctx.forward_to(chat).await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message could not be forwarded.
     pub async fn forward_to<C: Into<PackedChat>>(
         &self,
         chat: C,
@@ -244,9 +472,68 @@ impl Context {
         }
     }
 
+    /// Tries to upload a local file to the telegram without sending it to a chat.
+    ///
+    /// Returns the uploaded file.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let file = ctx.upload_file("path/to/file").await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file could not be uploaded.
+    pub async fn upload_file<P: AsRef<Path>>(&self, path: P) -> Result<Uploaded, io::Error> {
+        self.client.upload_file(path).await
+    }
+
+    /// Tries to upload a stream to the telegram without sending it to a chat.
+    ///
+    /// Returns the uploaded file.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let stream = tokio::fs::File::open("path/to/file").await?;
+    /// let file = ctx.upload_stream(&mut stream, 1024, "file.txt").await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the stream could not be uploaded.
+    pub async fn upload_stream<S: AsyncRead + Unpin>(
+        &self,
+        stream: &mut S,
+        size: usize,
+        name: String,
+    ) -> Result<Uploaded, io::Error> {
+        self.client.upload_stream(stream, size, name).await
+    }
+
     /// Tries to forward the message held by the update to the client's saved messages.
     ///
-    /// This is useful for saving messages.
+    /// Returns the forwarded message.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// ctx.forward_to_self().await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message could not be forwarded.
     pub async fn forward_to_self(&self) -> Result<Message, InvocationError> {
         if let Some(msg) = self.message().await {
             let chat = self.client().get_me().await?;
@@ -260,6 +547,21 @@ impl Context {
     /// Tries to edit or reply to the message held by the update.
     ///
     /// If the message is from the client, it will be edited.
+    ///
+    /// Returns the edited or replied message.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// ctx.edit_or_reply("Hello, world!").await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message could not be edited or replied.
     pub async fn edit_or_reply<M: Into<InputMessage>>(
         &self,
         message: M,
@@ -269,7 +571,8 @@ impl Context {
                 if let Chat::User(user) = sender {
                     if user.is_self() {
                         msg.edit(message).await?;
-                        self.refetch().await?;
+                        // FIXME: uncomment when `Message::refetch` fully works
+                        // self.refetch().await?;
 
                         return Ok(msg);
                     }
@@ -282,14 +585,42 @@ impl Context {
         }
     }
 
-    /// Tries to delete the message with the given ID.
+    /// Tries to delete a message with the given ID in the chat.
+    ///
+    /// Returns `Ok(())` if the message was deleted.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// ctx.delete_message(1234).await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message could not be deleted.
     pub async fn delete_message(&self, message_id: i32) -> Result<(), InvocationError> {
         self.delete_messages(vec![message_id]).await.map(drop)
     }
 
-    /// Tries to delete the messages with the given IDs.
+    /// Tries to delete the messages with the given IDs in the chat.
     ///
     /// Returns the number of messages deleted.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// ctx.delete_messages(vec![1234, 5678]).await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the messages could not be deleted.
     pub async fn delete_messages(&self, message_ids: Vec<i32>) -> Result<usize, InvocationError> {
         self.client
             .delete_messages(self.chat().expect("No chat"), &message_ids)
@@ -301,10 +632,23 @@ impl Context {
     /// If the message is not found, it will return `None`.
     ///
     /// Not works with bot clients.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let message = ctx.get_message(1234).await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message could not be retrieved.
     pub async fn get_message(&self, message_id: i32) -> Result<Option<Message>, InvocationError> {
         self.get_messages(vec![message_id])
             .await
-            .map(|mut v| v.pop().expect("No message"))
+            .map(|mut v| v.pop().unwrap_or(None))
     }
 
     /// Returns the messages in the chat with the given IDs.
@@ -312,6 +656,19 @@ impl Context {
     /// If a message is not found, it will be ignored.
     ///
     /// Not works with bot clients.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let messages = ctx.get_messages(vec![1234, 5678]).await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the messages could not be retrieved.
     pub async fn get_messages(
         &self,
         message_ids: Vec<i32>,
@@ -324,6 +681,21 @@ impl Context {
     /// Returns the total number of messages in the chat.
     ///
     /// This may be slow for large chats.
+    ///
+    /// Not works with bot clients.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let total = ctx.total_messages().await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the total number of messages could not be retrieved.
     pub async fn total_messages(&self) -> Result<usize, InvocationError> {
         self.client
             .iter_messages(self.chat().expect("No chat"))
@@ -336,6 +708,20 @@ impl Context {
     /// If the limit is `None`, it will be set to `100`.
     ///
     /// Not works with bot clients.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let Chat::User(user) = ctx.sender().unwrap();
+    /// let messages = ctx.get_messages_from(&user, None).await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the messages could not be retrieved.
     pub async fn get_messages_from(
         &self,
         user: &User,
@@ -363,6 +749,19 @@ impl Context {
     /// If the limit is `None`, it will be set to `100`.
     ///
     /// Not works with bot clients.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let messages = ctx.get_messages_from_self(None).await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the messages could not be retrieved.
     pub async fn get_messages_from_self(
         &self,
         limit: Option<usize>,
@@ -386,7 +785,18 @@ impl Context {
 
     /// Waits for an update.
     ///
-    /// If the timeout is `None`, it will wait for 30 seconds.
+    /// If the timeout is `None`, it will be set to 30 seconds.
+    ///
+    /// Returns `None` if the timeout is reached.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let update = ctx.wait_for_update(None).await?;
+    /// # }
+    /// ```
     pub async fn wait_for_update(&self, timeout: Option<u64>) -> Option<Update> {
         let mut rx = self.upd_receiver.lock().await;
 
@@ -405,8 +815,32 @@ impl Context {
 
     /// Waits for an update that matches the filter.
     ///
-    /// If the timeout is `None`, it will wait for 30 seconds.
-    /* pub async fn wait_for<F: Filter>(
+    /// If the timeout is `None`, it will be set to 30 seconds.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// use ferogram::flow;
+    /// use grammers_client::Update;
+    ///
+    /// let update = ctx.wait_for(|_, update| async move {
+    ///     if let Update::NewMessage(message) = update {
+    ///         if message.text() == "Hello, world!" {
+    ///             return flow::continue_now();
+    ///         }
+    ///     }
+    ///
+    ///     flow::break_now()
+    /// }, None).await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the update could not be received.
+    pub async fn wait_for<F: Filter>(
         &self,
         mut filter: F,
         timeout: Option<u64>,
@@ -424,11 +858,24 @@ impl Context {
                 return Err(crate::Error::timeout(timeout.unwrap()));
             }
         }
-    } */
+    }
 
     /// Sends a message and waits for a reply to it.
     ///
-    /// If the timeout is `None`, it will wait for 30 seconds.
+    /// If the timeout is `None`, it will be set to 30 seconds.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let message = ctx.wait_for_reply("Hello, world!", None).await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message could not be sent or the reply could not be received.
     pub async fn wait_for_reply<M: Into<InputMessage>>(
         &self,
         message: M,
@@ -453,7 +900,20 @@ impl Context {
 
     /// Waits for a message.
     ///
-    /// If the timeout is `None`, it will wait for 30 seconds.
+    /// If the timeout is `None`, it will be set to 30 seconds.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let message = ctx.wait_for_message(None).await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the message could not be received.
     pub async fn wait_for_message(&self, timeout: Option<u64>) -> Result<Message, crate::Error> {
         loop {
             if let Some(update) = self.wait_for_update(timeout).await {
@@ -468,7 +928,20 @@ impl Context {
 
     /// Waits for a callback query.
     ///
-    /// If the timeout is `None`, it will wait for 30 seconds.
+    /// If the timeout is `None`, it will be set to 30 seconds.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let query = ctx.wait_for_callback_query(None).await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the callback query could not be received.
     pub async fn wait_for_callback_query(
         &self,
         timeout: Option<u64>,
@@ -486,7 +959,20 @@ impl Context {
 
     /// Waits for a inline query.
     ///
-    /// If the timeout is `None`, it will wait for 30 seconds.
+    /// If the timeout is `None`, it will be set to 30 seconds.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let query = ctx.wait_for_inline_query(None).await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the inline query could not be received.
     pub async fn wait_for_inline_query(
         &self,
         timeout: Option<u64>,
@@ -504,7 +990,20 @@ impl Context {
 
     /// Waits for a inline send.
     ///
-    /// If the timeout is `None`, it will wait for 30 seconds.
+    /// If the timeout is `None`, it will be set to 30 seconds.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let inline_send = ctx.wait_for_inline_send(None).await?;
+    /// # }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the inline send could not be received.
     pub async fn wait_for_inline_send(
         &self,
         timeout: Option<u64>,

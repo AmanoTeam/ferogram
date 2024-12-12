@@ -33,6 +33,17 @@ pub struct Dispatcher {
 
 impl Dispatcher {
     /// Attachs a new router.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let dispatcher = unimplemented!();
+    /// let dispatcher = dispatcher.router(|router| {
+    ///     router
+    /// });
+    /// # }
+    /// ```
     pub fn router<R: FnOnce(Router) -> Router + 'static>(mut self, router: R) -> Self {
         let router = router(Router::default());
         self.routers.push(router);
@@ -41,6 +52,17 @@ impl Dispatcher {
     }
 
     /// Attachs a injector.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let dispatcher = unimplemented!();
+    /// let dispatcher = dispatcher.resources(|injector| {
+    ///     injector.insert(String::from("Hello, world!"));
+    /// });
+    /// # }
+    /// ```
     pub fn resources<D: FnOnce(di::Injector) -> di::Injector>(mut self, injector: D) -> Self {
         let mut injector = injector(di::Injector::default());
         self.injector.extend(&mut injector);
@@ -51,17 +73,50 @@ impl Dispatcher {
     /// Attachs a injector.
     ///
     /// Same as `resources`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let dispatcher = unimplemented!();
+    /// let dispatcher = dispatcher.dependencies(|injector| {
+    ///     injector.insert(String::from("Hello, world!"));
+    /// });
+    /// # }
+    /// ```
     pub fn dependencies<D: FnOnce(di::Injector) -> di::Injector>(self, injector: D) -> Self {
         self.resources(injector)
     }
 
     /// Allows the client to handle updates from itself.
+    ///
+    /// By default, the client will not handle updates from itself.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let dispatcher = unimplemented!();
+    /// let dispatcher = dispatcher.allow_from_self();
+    /// # }
+    /// ```
     pub fn allow_from_self(mut self) -> Self {
         self.allow_from_self = true;
         self
     }
 
     /// Attachs a new plugin.
+    ///
+    /// A plugin is a collection of routers.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let dispatcher = unimplemented!();
+    /// let dispatcher = dispatcher.plugin(Plugin::default());
+    /// # }
+    /// ```
     pub fn plugin(mut self, plugin: Plugin) -> Self {
         self.plugins.push(plugin);
 
@@ -69,6 +124,17 @@ impl Dispatcher {
     }
 
     /// Handle the update sent by Telegram.
+    ///
+    /// Returns `Ok(())` if the update was handled.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let dispatcher = unimplemented!();
+    /// let dispatcher = dispatcher.handle_update(&client, &update).await?;
+    /// # }
+    /// ```
     pub(crate) async fn handle_update(&mut self, client: &Client, update: &Update) -> Result<()> {
         let mut injector = di::Injector::default();
 

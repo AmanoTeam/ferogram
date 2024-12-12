@@ -41,11 +41,29 @@ pub struct Client {
 
 impl Client {
     /// Creates a new bot instance.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = Client::bot(std::env::var("BOT_TOKEN").unwrap()).build().await?;
+    /// # }
+    /// ```
     pub fn bot<T: Into<String>>(token: T) -> ClientBuilder {
         ClientBuilder::bot(token)
     }
 
     /// Creates a new user instance.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = Client::user(std::env::var("PHONE_NUMBER").unwrap()).build().await?;
+    /// # }
+    /// ```
     pub fn user<N: Into<String>>(phone_number: N) -> ClientBuilder {
         ClientBuilder::user(phone_number)
     }
@@ -58,6 +76,15 @@ impl Client {
     /// * `PHONE_NUMBER`: user's phone number (international way)
     /// * `API_ID`: developer's API ID from my.telegram.org
     /// * `API_HASH`: developer's API HASH from my.telegram.org
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = Client::from_env().build().await?;
+    /// # }
+    /// ```
     pub fn from_env() -> ClientBuilder {
         let mut builder = if let Ok(token) = std::env::var("BOT_TOKEN") {
             Self::bot(token)
@@ -81,6 +108,15 @@ impl Client {
     }
 
     /// Connects to the Telegram server, but don't listen to updates.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.connect().await?;
+    /// # }
+    /// ```
     pub async fn connect(mut self) -> Result<Self> {
         if self.is_connected {
             return Err("Client is already connected.".into());
@@ -130,22 +166,60 @@ impl Client {
     }
 
     /// Gets the inner grammers' `Client` instance.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.inner();
+    /// # }
+    /// ```
     pub fn inner(&self) -> &grammers_client::Client {
         &self.inner_client
     }
 
     /// Configures the dispatcher.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.dispatcher(|dispatcher| {
+    ///     dispatcher
+    /// });
+    /// # }
+    /// ```
     pub fn dispatcher<D: FnOnce(Dispatcher) -> Dispatcher>(mut self, dispatcher: D) -> Self {
         self.dispatcher = dispatcher(self.dispatcher);
         self
     }
 
-    /// Wheter the client is connected.
+    /// Whether the client is connected.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let is_connected = client.is_connected();
+    /// # }
+    /// ```
     pub fn is_connected(&self) -> bool {
         self.is_connected
     }
 
     /// Creates a new context which not holds an update.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let ctx = client.new_ctx();
+    /// # }
+    /// ```
     pub fn new_ctx(&self) -> Context {
         let upd_receiver = self.dispatcher.upd_sender.subscribe();
 
@@ -153,6 +227,15 @@ impl Client {
     }
 
     /// Listen to Telegram's updates and send them to the dispatcher's routers.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// client.run().await?;
+    /// # }
+    /// ```
     pub async fn run(self) -> Result<()> {
         let handle = self.inner_client;
         let dispatcher = self.dispatcher;
@@ -211,6 +294,15 @@ impl Client {
     }
 
     /// Keeps the connection open, but doesn't listen to the updates.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// client.keep_alive().await?;
+    /// # }
+    /// ```
     pub async fn keep_alive(self) -> Result<()> {
         let handle = self.inner_client;
 
@@ -256,6 +348,15 @@ pub struct ClientBuilder {
 
 impl ClientBuilder {
     /// Creates a new builder to bot instance.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = Client::bot(std::env::var("BOT_TOKEN").unwrap());
+    /// # }
+    /// ```
     pub fn bot<T: Into<String>>(token: T) -> Self {
         Self {
             client_type: ClientType::Bot(token.into()),
@@ -265,6 +366,15 @@ impl ClientBuilder {
     }
 
     /// Creates a new builder to user instance.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = Client::user(std::env::var("PHONE_NUMBER").unwrap());
+    /// # }
+    /// ```
     pub fn user<N: Into<String>>(phone_number: N) -> Self {
         Self {
             client_type: ClientType::User(phone_number.into()),
@@ -274,6 +384,15 @@ impl ClientBuilder {
     }
 
     /// Builds the `Client` instance.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.build().await?;
+    /// # }
+    /// ```
     pub async fn build(self) -> Result<Client> {
         let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
 
@@ -304,6 +423,15 @@ impl ClientBuilder {
     /// Builds and connects the `Client` instance.
     ///
     /// Connects to the Telegram server, but don't listen to updates.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.build_and_connect().await?;
+    /// # }
+    /// ```
     pub async fn build_and_connect(self) -> Result<Client> {
         self.build().await?.connect().await
     }
@@ -311,6 +439,15 @@ impl ClientBuilder {
     /// Developer's API ID, required to interact with the Telegram's API.
     ///
     /// You may obtain your own in <https://my.telegram.org/auth>.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.api_id(123456789);
+    /// # }
+    /// ```
     pub fn api_id(mut self, api_id: i32) -> Self {
         self.api_id = api_id;
         self
@@ -319,6 +456,15 @@ impl ClientBuilder {
     /// Developer's API hash, required to interact with Telegram's API.
     ///
     /// You may obtain your own in <https://my.telegram.org/auth>.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.api_hash("123456789");
+    /// # }
+    /// ```
     pub fn api_hash<H: Into<String>>(mut self, api_hash: H) -> Self {
         self.api_hash = api_hash.into();
         self
@@ -326,6 +472,15 @@ impl ClientBuilder {
 
     /// Session storage where data should persist, such as authorization key, server address,
     /// and other required information by the client.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.session_file("path/to/file");
+    /// # }
+    /// ```
     pub fn session_file<P: AsRef<Path> + ToString>(mut self, path: P) -> Self {
         self.session_file = Some(path.to_string());
         self
@@ -334,6 +489,15 @@ impl ClientBuilder {
     /// User's device model.
     ///
     /// Telegram uses to know your device in devices settings.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.device_model("iPhone 14");
+    /// # }
+    /// ```
     pub fn device_model<M: Into<String>>(mut self, device_model: M) -> Self {
         self.init_params.device_model = device_model.into();
         self
@@ -342,6 +506,15 @@ impl ClientBuilder {
     /// User's system version.
     ///
     /// Telegram uses to know your system version in devices settings.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.system_version("iOS 18.2");
+    /// # }
+    /// ```
     pub fn system_version<V: Into<String>>(mut self, system_version: V) -> Self {
         self.init_params.system_version = system_version.into();
         self
@@ -350,6 +523,15 @@ impl ClientBuilder {
     /// Client's app version.
     ///
     /// Telegram uses to know your app version in device settings.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.app_version("1.0.0");
+    /// # }
+    /// ```
     pub fn app_version<V: Into<String>>(mut self, app_version: V) -> Self {
         self.init_params.app_version = app_version.into();
         self
@@ -358,6 +540,15 @@ impl ClientBuilder {
     /// Client's language code.
     ///
     /// Telegram uses internally to let others know your language.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.lang_code("en");
+    /// # }
+    /// ```
     pub fn lang_code<C: Into<String>>(mut self, lang_code: C) -> Self {
         self.init_params.lang_code = lang_code.into();
         self
@@ -366,6 +557,15 @@ impl ClientBuilder {
     /// Should the client catch-up on updates sent to it while it was offline?
     ///
     /// By default, updates sent while the client was offline are ignored.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.catch_up(true);
+    /// # }
+    /// ```
     pub fn catch_up(mut self, value: bool) -> Self {
         self.init_params.catch_up = value;
         self
@@ -375,6 +575,15 @@ impl ClientBuilder {
     /// in the session file (or a default production address if no such address exists). This
     /// field can be used to override said address, and is most commonly used to connect to one
     /// of Telegram's test servers instead.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.server_address("127.0.0.1:8080");
+    /// # }
+    /// ```
     pub fn server_address(mut self, server_address: SocketAddr) -> Self {
         self.init_params.server_addr = Some(server_address);
         self
@@ -392,6 +601,15 @@ impl ClientBuilder {
     ///
     /// On flood, the library will retry *once*. If the flood error occurs a second time after
     /// sleeping, the error will be returned.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.flood_sleep_threshold(20);
+    /// # }
+    /// ```
     pub fn flood_sleep_threshold(mut self, flood_sleep_threshold: u32) -> Self {
         self.init_params.flood_sleep_threshold = flood_sleep_threshold;
         self
@@ -416,6 +634,15 @@ impl ClientBuilder {
     /// although bot accounts may need to increase the limit depending on their capacity.
     ///
     /// When the limit is `Some`, a buffer to hold that many updates will be pre-allocated.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.update_queue_limit(Some(100));
+    /// # }
+    /// ```
     pub fn update_queue_limit(mut self, update_queue_limit: Option<usize>) -> Self {
         self.init_params.update_queue_limit = update_queue_limit;
         self
@@ -424,6 +651,15 @@ impl ClientBuilder {
     /// Waits for a `Ctrl + C` signal to close the connection and exit the app.
     ///
     /// Otherwise the code will continue running until it finds the end.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.wait_for_ctrl_c();
+    /// # }
+    /// ```
     pub fn wait_for_ctrl_c(mut self) -> Self {
         self.wait_for_ctrl_c = true;
         self
@@ -432,6 +668,32 @@ impl ClientBuilder {
     /// Sets the reconnection policy.
     ///
     /// Executed when the client loses the connection or the Telegram server closes it.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// use std::{ops::ControlFlow, time::Duration};
+    ///
+    /// use grammers_client::ReconnectionPolicy;
+    ///
+    /// struct MyReconnectionPolicy;
+    ///
+    /// impl ReconnectionPolicy for MyReconnectionPolicy {
+    ///     fn should_retry(&self, attempt: usize) -> ControlFlow<(), Duration> {
+    ///         if attempt < 3 {
+    ///             let time = 5 * attempt;
+    ///             ControlFlow::Continue(Duration::from_secs(time as u64))
+    ///         } else {
+    ///             ControlFlow::Break(())
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// let client = client.reconnection_policy(&MyReconnectionPolicy);
+    /// # }
+    /// ```
     pub fn reconnection_policy<P: ReconnectionPolicy>(mut self, policy: &'static P) -> Self {
         self.init_params.reconnection_policy = policy;
         self
@@ -440,6 +702,17 @@ impl ClientBuilder {
     /// Sets the global error handler.
     ///
     /// Executed when any `handler` returns an error.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.on_err(|_, _, error| async move {
+    ///     println!("Error handling update: {:?}", error);
+    /// });
+    /// # }
+    /// ```
     pub fn on_err<H: ErrorHandler>(mut self, handler: H) -> Self {
         self.err_handler = Some(Box::new(handler));
         self
@@ -450,6 +723,19 @@ impl ClientBuilder {
     /// Only is called when used with `wait_for_ctrl_c` and the client is runned by `run()`.
     ///
     /// Executed when the client is about to exit.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.on_exit(|_, _| async move {
+    ///     println!("Exiting...");
+    ///
+    ///     Ok(())
+    /// });
+    /// # }
+    /// ```
     pub fn on_exit<I, H: di::Handler>(
         mut self,
         handler: impl di::IntoHandler<I, Handler = H>,
@@ -463,6 +749,19 @@ impl ClientBuilder {
     /// Only is called when the client is runned by `run()`.
     ///
     /// Executed when the client is ready to receive updates.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let client = unimplemented!();
+    /// let client = client.on_ready(|_, _| async move {
+    ///     println!("Ready to receive updates!");
+    ///
+    ///     Ok(())
+    /// });
+    /// # }
+    /// ```
     pub fn on_ready<I, H: di::Handler>(
         mut self,
         handler: impl di::IntoHandler<I, Handler = H>,

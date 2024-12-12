@@ -26,12 +26,32 @@ pub struct Router {
 
 impl Router {
     /// Attachs a new handler.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let router = unimplemented!();
+    /// let router = router.handler(handler::then(|| async { Ok(()) }));
+    /// # }
+    /// ```
     pub fn handler(mut self, handler: Handler) -> Self {
         self.handlers.push(handler);
         self
     }
 
     /// Attachs a new router.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let router = unimplemented!();
+    /// let router = router.router(|router| {
+    ///     router
+    /// });
+    /// # }
+    /// ```
     pub fn router<R: FnOnce(Router) -> Router + 'static>(mut self, router: R) -> Self {
         let router = router(Self::default());
         self.handlers.extend(router.handlers);
@@ -39,6 +59,20 @@ impl Router {
     }
 
     /// Handle the update sent by Telegram.
+    ///
+    /// Returns `Ok(())` if the update was handled.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// use ferogram::di::Injector;
+    ///
+    /// # let router = unimplemented!();
+    /// let mut injector = Injector::default();
+    /// let success = router.handle_update(&client, &update, &mut injector).await?;
+    /// # }
+    /// ```
     #[async_recursion]
     pub(crate) async fn handle_update(
         &mut self,

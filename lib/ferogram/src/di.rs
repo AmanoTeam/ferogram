@@ -35,11 +35,29 @@ pub struct Injector {
 
 impl Injector {
     /// Count of resources stored.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let injector = unimplemented!();
+    /// let count = injector.len();
+    /// # }
+    /// ```
     pub fn len(&self) -> usize {
         self.resources.len()
     }
 
     /// Insert a new resource.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let injector = unimplemented!();
+    /// injector.insert(String::from("Hello, world!"));
+    /// # }
+    /// ```
     pub fn insert<R: Clone + Send + Sync + 'static>(&mut self, value: R) {
         self.resources
             .entry(TypeId::of::<R>())
@@ -48,12 +66,30 @@ impl Injector {
     }
 
     /// Insert a new resource.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let injector = unimplemented!();
+    /// let injector = injector.with(String::from("Hello, world!"));
+    /// # }
+    /// ```
     pub fn with<R: Clone + Send + Sync + 'static>(mut self, value: R) -> Self {
         self.insert(value);
         self
     }
 
     /// Extend the resources with the resources of another injector.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let injector = unimplemented!();
+    /// let injector = injector.extend(&mut Injector::default());
+    /// # }
+    /// ```
     pub fn extend(&mut self, other: &mut Self) {
         for (type_id, values) in other.resources.drain() {
             self.resources
@@ -64,6 +100,15 @@ impl Injector {
     }
 
     /// Remove a resource.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let injector = unimplemented!();
+    /// let resource = injector.take::<String>();
+    /// # }
+    /// ```
     pub fn take<R: Send + Sync + 'static>(&mut self) -> Option<Arc<R>> {
         match self.resources.entry(TypeId::of::<R>()) {
             Entry::Occupied(mut e) => e.get_mut().pop_front().unwrap().to(),
@@ -72,6 +117,15 @@ impl Injector {
     }
 
     /// Get a reference for a resource.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let injector = unimplemented!();
+    /// let resource = injector.get::<String>();
+    /// # }
+    /// ```
     pub fn get<R: Send + Sync + 'static>(&mut self) -> Option<&R> {
         self.resources
             .get(&TypeId::of::<R>())
@@ -106,33 +160,13 @@ impl Resource {
     pub fn to_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
         self.value.downcast_ref()
     }
-
-    /// Get the value of the resource.
-    pub fn to_any(&self) -> Value {
-        self.value.clone()
-    }
-
-    /// Get the value of the resource.
-    pub fn value(&self) -> &dyn Any {
-        &*self.value
-    }
-
-    /// Get the type id of the resource.
-    pub fn type_id(&self) -> TypeId {
-        self.value.type_id()
-    }
-
-    /// Get the type name of the resource.
-    pub fn type_name(&self) -> &'static str {
-        self.type_name
-    }
 }
 
 /// A resource value.
 pub type Value = Arc<dyn Any + Send + Sync>;
 
 #[async_trait]
-/// Handler trait.
+/// Handler trait, used to handle the request.
 pub trait Handler: CloneHandler + Send + Sync + 'static {
     /// Handles the request.
     async fn handle(&mut self, injector: &mut Injector) -> Result<()>;
@@ -185,14 +219,16 @@ impl_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
 impl_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
 impl_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
 
-#[derive(Clone)]
 /// Handler function holder.
+#[derive(Clone)]
 pub struct HandlerFunc<Input, F> {
+    /// The function.
     f: F,
+    /// The marker.
     marker: PhantomData<fn() -> Input>,
 }
 
-/// A trait allows converting a function into a [`Handler`].
+/// A trait that allows converting a function into a [`Handler`].
 pub trait IntoHandler<Input>: Send {
     type Handler: Handler + Send;
 
@@ -239,7 +275,7 @@ impl_into_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
 impl_into_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
 impl_into_handler!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
 
-/// A trait allows cloning the handler.
+/// A trait that allows cloning the handler.
 pub trait CloneHandler {
     /// Clones the handler.
     fn clone_handler(&self) -> Box<dyn Handler>;

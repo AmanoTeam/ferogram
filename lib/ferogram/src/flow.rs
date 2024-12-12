@@ -10,35 +10,82 @@
 
 use crate::{di::Injector, Result};
 
-/// Represents the control flow of a handler's filter and its endpoint.
+/// Represents the control flow of a filter.
 #[derive(Debug, Default)]
 pub struct Flow {
+    /// The action.
     action: Action,
+    /// The injector.
     pub(crate) injector: Injector,
 }
 
 impl Flow {
-    /// Change the current action to [`Action::Break`].
+    /// Changes the current action to [`Action::Break`].
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let flow = unimplemented!();
+    /// flow.to_break();
+    /// # }
+    /// ```
     pub fn to_break(&mut self) {
         self.action = Action::Break;
     }
 
-    /// Change the current action to [`Action::Continue`].
+    /// Changes the current action to [`Action::Continue`].
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let flow = unimplemented!();
+    /// flow.to_continue();
+    /// # }
+    /// ```
     pub fn to_continue(&mut self) {
         self.action = Action::Continue;
     }
 
-    /// Inject a value.
+    /// Injects a value.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let flow = unimplemented!();
+    /// flow.inject(String::from("Hello, world!"));
+    /// # }
+    /// ```
     pub fn inject<R: Clone + Send + Sync + 'static>(&mut self, value: R) {
         self.injector.insert(value);
     }
 
-    /// Check if the current action is [`Action::Break`].
+    /// Checks if the current action is [`Action::Break`].
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let flow = unimplemented!();
+    /// let is_break = flow.is_break();
+    /// # }
+    /// ```
     pub fn is_break(&self) -> bool {
         matches!(self.action, Action::Continue)
     }
 
-    /// Check if the current action is [`Action::Continue`].
+    /// Checks if the current action is [`Action::Continue`].
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let flow = unimplemented!();
+    /// let is_continue = flow.is_continue();
+    /// # }
+    /// ```
     pub fn is_continue(&self) -> bool {
         matches!(self.action, Action::Continue)
     }
@@ -78,7 +125,7 @@ impl<T: Clone + Send + Sync + 'static> From<Result<T>> for Flow {
     }
 }
 
-/// Represents the next action will be made onto the handler.
+/// Represents the next action that will be made in the handler.
 #[derive(Debug, Default)]
 pub enum Action {
     Break,
@@ -86,7 +133,7 @@ pub enum Action {
     Continue,
 }
 
-/// Create a new flow with action [`Action::Break`].
+/// Creates a new flow with action [`Action::Break`].
 pub fn break_now() -> Flow {
     Flow {
         action: Action::Break,
@@ -94,7 +141,7 @@ pub fn break_now() -> Flow {
     }
 }
 
-/// Create a new flow with action [`Action::Continue`].
+/// Creates a new flow with action [`Action::Continue`].
 pub fn continue_now() -> Flow {
     Flow {
         action: Action::Continue,
@@ -102,7 +149,7 @@ pub fn continue_now() -> Flow {
     }
 }
 
-/// Create a new flow with action [`Action::Continue`] and inject a value.
+/// Creates a new flow with action [`Action::Continue`] and inject a value.
 pub fn continue_with<R: Clone + Send + Sync + 'static>(value: R) -> Flow {
     let mut flow = continue_now();
     flow.inject(value);

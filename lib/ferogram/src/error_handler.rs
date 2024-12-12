@@ -56,7 +56,7 @@ where
     }
 }
 
-/// A trait allows cloning the error handler.
+/// A trait that allows cloning the error handler.
 pub trait CloneErrorHandler {
     /// Clones the error handler.
     fn clone_error_handler(&self) -> Box<dyn ErrorHandler>;
