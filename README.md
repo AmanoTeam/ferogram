@@ -4,7 +4,7 @@ A set of Rust libraries to interact with Telegram's API easier using [grammers].
 
 ## Current status
 
-Work in progress.
+Working fine.
 
 ## License
 
