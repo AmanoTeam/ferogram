@@ -10,4 +10,19 @@
 
 //! Ferogram is a small framework for building Telegram bots using the [`grammers`] library.
 //!
-//! Macros extension.
+//! Python extension.
+
+use ferogram::py::*;
+use pyo3::prelude::*;
+
+/// Ferogram Python module.
+#[pymodule]
+fn ferogram_py(_py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
+    module.add_class::<Chat>()?;
+    module.add_class::<UserStatus>()?;
+
+    module.add_class::<Context>()?;
+    module.add_class::<Message>()?;
+
+    Ok(())
+}

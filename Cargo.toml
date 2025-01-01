@@ -1,6 +1,8 @@
 [workspace]
 members = [
     "lib/ferogram",
+    "lib/ferogram-lua",
+    "lib/ferogram-python",
     "lib/ferogram-macros",
 ]
 resolver = "2"

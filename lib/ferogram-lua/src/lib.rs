@@ -10,4 +10,15 @@
 
 //! Ferogram is a small framework for building Telegram bots using the [`grammers`] library.
 //!
-//! Macros extension.
+//! Lua extension.
+
+use ferogram::lua::*;
+use mlua::{lua_module, prelude::*};
+
+/// Ferogram Lua module.
+#[lua_module]
+fn ferogram_lua(lua: &Lua) -> LuaResult<LuaTable> {
+    let exports = lua.create_table()?;
+
+    Ok(exports)
+}

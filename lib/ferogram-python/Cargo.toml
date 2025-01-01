@@ -1,0 +1,21 @@
+[package]
+name = "ferogram-python"
+version = "0.1.0"
+authors = ["Andriel Ferreira <andrielfr@proton.me>"]
+license = "MIT OR Apache-2.0"
+description = """
+Python bindings for ferogram.
+"""
+homepage = "https://github.com/AmanoTeam/ferogram"
+repository = "https://github.com/AmanoTeam/ferogram"
+keywords = ["telegram", "bot", "framework", "grammers", "python"]
+edition = "2021"
+
+[lib]
+name = "ferogram_py"
+crate-type = ["cdylib"]
+
+[dependencies]
+ferogram = { path = "../ferogram", features = ["python"] }
+
+pyo3 = { version = "*", features = ["extension-module", "macros"] }

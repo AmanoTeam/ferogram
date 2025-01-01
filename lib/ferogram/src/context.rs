@@ -26,10 +26,11 @@ use tokio::{
 use crate::{utils::bytes_to_string, Filter};
 
 /// The context of an update.
+#[derive(Debug)]
 pub struct Context {
-    /// The client.
+    // The client that received the update.
     client: grammers_client::Client,
-    /// The update.
+    /// The update itself.
     update: Option<Update>,
     /// The update receiver.
     upd_receiver: Arc<Mutex<Receiver<Update>>>,

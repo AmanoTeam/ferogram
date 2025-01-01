@@ -20,7 +20,7 @@ pub mod filter;
 pub(crate) mod filters;
 pub mod flow;
 pub mod handler;
-mod plugins;
+mod plugin;
 mod router;
 pub(crate) mod utils;
 
@@ -33,8 +33,14 @@ pub(crate) use error_handler::ErrorHandler;
 pub use filter::Filter;
 pub(crate) use flow::Flow;
 pub(crate) use handler::Handler;
-pub use plugins::Plugin;
+pub use plugin::Plugin;
 pub use router::Router;
+
+#[cfg(feature = "lua")]
+pub mod lua;
+
+#[cfg(feature = "python")]
+pub mod py;
 
 #[cfg(feature = "macros")]
 pub use ferogram_macros as macros;

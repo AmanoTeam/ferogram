@@ -1,0 +1,32 @@
+[package]
+name = "ferogram-lua"
+version = "0.1.0"
+authors = ["Andriel Ferreira <andrielfr@proton.me>"]
+license = "MIT OR Apache-2.0"
+description = """
+Lua bindings for ferogram.
+"""
+homepage = "https://github.com/AmanoTeam/ferogram"
+repository = "https://github.com/AmanoTeam/ferogram"
+keywords = ["telegram", "bot", "framework", "grammers", "lua"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ferogram = { path = "../ferogram", features = ["lua"] }
+
+mlua = { version = "*", features = ["async", "lua54", "module"] }
+
+[target.x86_64-apple-darwin]
+rustflags = [
+  "-C", "link-arg=-undefined",
+  "-C", "link-arg=dynamic_lookup",
+]
+
+[target.aarch64-apple-darwin]
+rustflags = [
+  "-C", "link-arg=-undefined",
+  "-C", "link-arg=dynamic_lookup",
+]
