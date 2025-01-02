@@ -81,7 +81,7 @@ impl Router {
         injector: &mut Injector,
     ) -> Result<bool> {
         for handler in self.handlers.iter_mut() {
-            let flow = handler.check(&client, update).await;
+            let flow = handler.check(client, update).await;
 
             if flow.is_continue() {
                 if let Some(endpoint) = handler.endpoint.as_mut() {

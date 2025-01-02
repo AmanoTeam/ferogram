@@ -233,6 +233,17 @@ impl From<tl::enums::UserStatus> for UserStatus {
 
 impl From<&tl::enums::UserStatus> for UserStatus {
     fn from(status: &tl::enums::UserStatus) -> Self {
-        status.into()
+        use tl::enums::UserStatus;
+
+        match status {
+            UserStatus::Empty => Self::Empty(),
+            UserStatus::Online(o) => Self::Online { expires: o.expires },
+            UserStatus::Offline(o) => Self::Offline {
+                was_online: o.was_online,
+            },
+            UserStatus::Recently(r) => Self::Recently { by_me: r.by_me },
+            UserStatus::LastWeek(l) => Self::LastWeek { by_me: l.by_me },
+            UserStatus::LastMonth(l) => Self::LastMonth { by_me: l.by_me },
+        }
     }
 }

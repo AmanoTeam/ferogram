@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "lib/ferogram",
-    "lib/ferogram-lua",
+    # "lib/ferogram-lua",
     "lib/ferogram-python",
     "lib/ferogram-macros",
 ]

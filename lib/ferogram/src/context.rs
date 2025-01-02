@@ -804,8 +804,8 @@ impl Context {
         let upd = pin!(async { rx.recv().await });
 
         match select(stop, upd).await {
-            Either::Left(_) => return None,
-            Either::Right((update, _)) => return update.ok(),
+            Either::Left(_) => None,
+            Either::Right((update, _)) => update.ok(),
         }
     }
 

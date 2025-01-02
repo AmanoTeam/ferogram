@@ -15,7 +15,7 @@ use futures_util::Future;
 use grammers_client::{Client, Update};
 
 pub use crate::filters::*;
-use crate::{flow, Flow};
+use crate::Flow;
 
 /// A filter.
 #[async_trait]
@@ -68,7 +68,7 @@ where
 }
 
 #[async_trait]
-impl<F, O: Into<Flow>> Filter for Arc<T>
+impl<T: ?Sized, F, O: Into<Flow>> Filter for Arc<T>
 where
     T: Fn(Client, Update) -> F + Send + Sync + 'static,
     F: Future<Output = O> + Send + Sync + 'static,

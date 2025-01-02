@@ -14,7 +14,7 @@ use async_trait::async_trait;
 use futures_util::Future;
 use grammers_client::{Client, Update};
 
-use crate::{flow, Flow};
+use crate::Flow;
 
 /// [`Error`] boxed.
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
@@ -40,7 +40,7 @@ where
 }
 
 #[async_trait]
-impl<F, O: Into<Flow>> ErrorHandler for Arc<T>
+impl<T: ?Sized, F, O: Into<Flow>> ErrorHandler for Arc<T>
 where
     T: Fn(Client, Update, Error) -> F + Send + Sync + 'static,
     F: Future<Output = O> + Send + Sync + 'static,

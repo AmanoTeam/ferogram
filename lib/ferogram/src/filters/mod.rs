@@ -155,7 +155,7 @@ pub fn commands(pats: &'static [&'static str]) -> impl Filter {
 /// This filter is a custom [`regex`] filter, so it accepts a bit of regex syntax.
 pub fn commands_with(pres: &'static [&'static str], pats: &'static [&'static str]) -> impl Filter {
     Command {
-        prefixes: pres.into_iter().map(|pre| regex::escape(pre)).collect(),
+        prefixes: pres.iter().map(|pre| regex::escape(pre)).collect(),
         command: pats.join("|"),
         username: Arc::new(Mutex::new(None)),
     }
