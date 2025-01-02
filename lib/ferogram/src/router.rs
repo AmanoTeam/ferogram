@@ -153,6 +153,6 @@ mod tests {
             .handler(handler::new_update(filter).then(endpoint))
             .handler(handler::then(|_update: Update| async { Ok(()) }));
 
-        assert_eq!(router.handlers.len(), 3);
+        assert_eq!(router.handlers.len(), 4);
     }
 }

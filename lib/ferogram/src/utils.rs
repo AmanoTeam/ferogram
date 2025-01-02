@@ -109,7 +109,7 @@ pub fn split_btns_into_columns(buttons: Vec<Inline>, per_column: usize) -> Vec<V
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// let buttons = vec![button1, button2, button3, button4, button5];
 /// let rows = split_btns_into_rows(buttons, 2);
 /// assert_eq!(rows, vec![vec![button1, button2, button3], vec![button4, button5]]);

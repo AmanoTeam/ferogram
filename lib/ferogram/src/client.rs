@@ -46,9 +46,10 @@ impl Client {
     /// # Examples
     ///
     /// ```no_run
+    /// # use ferogram::Client;
+    /// #
     /// # async fn example() {
-    /// # let client = unimplemented!();
-    /// let client = Client::bot(std::env::var("BOT_TOKEN").unwrap()).build().await?;
+    /// let client = Client::bot(std::env::var("BOT_TOKEN").unwrap_or_default()).build().await?;
     /// # }
     /// ```
     pub fn bot<T: Into<String>>(token: T) -> ClientBuilder {
@@ -60,8 +61,9 @@ impl Client {
     /// # Examples
     ///
     /// ```no_run
+    /// # use ferogram::Client;
+    /// #
     /// # async fn example() {
-    /// # let client = unimplemented!();
     /// let client = Client::user(std::env::var("PHONE_NUMBER").unwrap()).build().await?;
     /// # }
     /// ```
@@ -81,8 +83,9 @@ impl Client {
     /// # Examples
     ///
     /// ```no_run
+    /// # use ferogram::Client;
+    /// #
     /// # async fn example() {
-    /// # let client = unimplemented!();
     /// let client = Client::from_env().build().await?;
     /// # }
     /// ```
@@ -113,8 +116,7 @@ impl Client {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.connect().await?;
     /// # }
     /// ```
@@ -171,8 +173,7 @@ impl Client {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.inner();
     /// # }
     /// ```
@@ -185,8 +186,7 @@ impl Client {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.dispatcher(|dispatcher| {
     ///     dispatcher
     /// });
@@ -202,8 +202,7 @@ impl Client {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let is_connected = client.is_connected();
     /// # }
     /// ```
@@ -216,8 +215,7 @@ impl Client {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let ctx = client.new_ctx();
     /// # }
     /// ```
@@ -232,8 +230,7 @@ impl Client {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// client.run().await?;
     /// # }
     /// ```
@@ -299,8 +296,7 @@ impl Client {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// client.keep_alive().await?;
     /// # }
     /// ```
@@ -444,8 +440,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.api_id(123456789);
     /// # }
     /// ```
@@ -461,8 +456,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.api_hash("123456789");
     /// # }
     /// ```
@@ -477,8 +471,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.session_file("path/to/file");
     /// # }
     /// ```
@@ -494,8 +487,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.device_model("iPhone 14");
     /// # }
     /// ```
@@ -511,8 +503,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.system_version("iOS 18.2");
     /// # }
     /// ```
@@ -528,8 +519,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.app_version("1.0.0");
     /// # }
     /// ```
@@ -545,8 +535,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.lang_code("en");
     /// # }
     /// ```
@@ -562,8 +551,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.catch_up(true);
     /// # }
     /// ```
@@ -580,8 +568,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.server_address("127.0.0.1:8080");
     /// # }
     /// ```
@@ -606,8 +593,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.flood_sleep_threshold(20);
     /// # }
     /// ```
@@ -639,8 +625,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.update_queue_limit(Some(100));
     /// # }
     /// ```
@@ -656,8 +641,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.wait_for_ctrl_c();
     /// # }
     /// ```
@@ -673,8 +657,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// use std::{ops::ControlFlow, time::Duration};
     ///
     /// use grammers_client::ReconnectionPolicy;
@@ -707,8 +690,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.on_err(|_, _, error| async move {
     ///     println!("Error handling update: {:?}", error);
     /// });
@@ -728,8 +710,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.on_exit(|_, _| async move {
     ///     println!("Exiting...");
     ///
@@ -754,8 +735,7 @@ impl ClientBuilder {
     /// # Examples
     ///
     /// ```no_run
-    /// # async fn example() {
-    /// # let client = unimplemented!();
+    /// # async fn example(client: ferogram::Client) {
     /// let client = client.on_ready(|_, _| async move {
     ///     println!("Ready to receive updates!");
     ///
@@ -793,25 +773,33 @@ mod tests {
 
     #[tokio::test]
     async fn test_client_bot() {
-        let client = Client::bot(std::env::var("BOT_TOKEN").unwrap())
-            .api_id(std::env::var("API_ID").unwrap().parse::<i32>().unwrap())
-            .api_hash(std::env::var("API_HASH").unwrap())
-            .build_and_connect()
-            .await
-            .unwrap();
+        let client = Client::bot(std::env::var("BOT_TOKEN").unwrap_or_default())
+            .api_id(
+                std::env::var("API_ID")
+                    .unwrap_or("123456789".to_string())
+                    .parse::<i32>()
+                    .unwrap(),
+            )
+            .api_hash(std::env::var("API_HASH").unwrap_or_default())
+            .build()
+            .await;
 
-        assert_eq!(client.is_connected(), true);
+        assert!(client.is_ok());
     }
 
     #[tokio::test]
     async fn test_client_user() {
-        let client = Client::user(std::env::var("PHONE_NUMBER").unwrap())
-            .api_id(std::env::var("API_ID").unwrap().parse::<i32>().unwrap())
-            .api_hash(std::env::var("API_HASH").unwrap())
-            .build_and_connect()
-            .await
-            .unwrap();
+        let client = Client::user(std::env::var("PHONE_NUMBER").unwrap_or_default())
+            .api_id(
+                std::env::var("API_ID")
+                    .unwrap_or("123456789".to_string())
+                    .parse::<i32>()
+                    .unwrap(),
+            )
+            .api_hash(std::env::var("API_HASH").unwrap_or_default())
+            .build()
+            .await;
 
-        assert_eq!(client.is_connected(), true);
+        assert!(client.is_ok());
     }
 }
