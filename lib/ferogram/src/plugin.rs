@@ -83,7 +83,7 @@ impl PluginBuilder {
 
     /// Sets the authors of the plugin.
     pub fn authors(mut self, authors: &[&str]) -> Self {
-        self.authors = authors.into_iter().map(|a| a.to_string()).collect();
+        self.authors = authors.iter().map(|a| a.to_string()).collect();
         self
     }
 

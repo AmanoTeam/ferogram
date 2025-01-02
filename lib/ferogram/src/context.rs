@@ -568,15 +568,13 @@ impl Context {
         message: M,
     ) -> Result<Message, InvocationError> {
         if let Some(msg) = self.message().await {
-            if let Some(sender) = msg.sender() {
-                if let Chat::User(user) = sender {
-                    if user.is_self() {
-                        msg.edit(message).await?;
-                        // FIXME: uncomment when `Message::refetch` fully works
-                        // self.refetch().await?;
+            if let Some(Chat::User(user)) = msg.sender() {
+                if user.is_self() {
+                    msg.edit(message).await?;
+                    // FIXME: uncomment when `Message::refetch` fully works.
+                    // self.refetch().await?;
 
-                        return Ok(msg);
-                    }
+                    return Ok(msg);
                 }
             }
 
@@ -801,16 +799,13 @@ impl Context {
     pub async fn wait_for_update(&self, timeout: Option<u64>) -> Option<Update> {
         let mut rx = self.upd_receiver.lock().await;
 
-        loop {
-            let stop = pin!(async {
-                tokio::time::sleep(Duration::from_secs(timeout.unwrap_or(30))).await
-            });
-            let upd = pin!(async { rx.recv().await });
+        let stop =
+            pin!(async { tokio::time::sleep(Duration::from_secs(timeout.unwrap_or(30))).await });
+        let upd = pin!(async { rx.recv().await });
 
-            match select(stop, upd).await {
-                Either::Left(_) => return None,
-                Either::Right((update, _)) => return update.ok(),
-            }
+        match select(stop, upd).await {
+            Either::Left(_) => return None,
+            Either::Right((update, _)) => return update.ok(),
         }
     }
 

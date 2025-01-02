@@ -150,7 +150,7 @@ impl Client {
                             let password =
                                 prompt(format!("Enter the password (hint: {}): ", hint), true)?;
 
-                            if let Ok(_) = client.check_password(token, password.trim()).await {
+                            if client.check_password(token, password.trim()).await.is_ok() {
                                 client.session().save_to_file(session_file)?;
                             }
                         }

@@ -134,7 +134,7 @@ pub fn command(pat: &'static str) -> impl Filter {
 /// This filter is a custom [`regex`] filter, so it accepts a bit of regex syntax.
 pub fn command_with(pres: &'static [&'static str], pat: &'static str) -> impl Filter {
     Command {
-        prefixes: pres.into_iter().map(|pre| regex::escape(pre)).collect(),
+        prefixes: pres.iter().map(|pre| regex::escape(pre)).collect(),
         command: pat.to_owned(),
 
         username: Arc::new(Mutex::new(None)),
@@ -183,16 +183,14 @@ pub async fn poll(_: Client, update: Update) -> Flow {
 pub async fn audio(_: Client, update: Update) -> Flow {
     match update {
         Update::NewMessage(message) | Update::MessageEdited(message) => {
-            if let Some(media) = message.media() {
-                if let Media::Document(document) = media {
-                    if document.audio_title().is_some()
-                        || document.performer().is_some()
-                        || document
-                            .mime_type()
-                            .map_or(false, |mime| mime.starts_with("audio/"))
-                    {
-                        return flow::continue_with(document);
-                    }
+            if let Some(Media::Document(document)) = message.media() {
+                if document.audio_title().is_some()
+                    || document.performer().is_some()
+                    || document
+                        .mime_type()
+                        .map_or(false, |mime| mime.starts_with("audio/"))
+                {
+                    return flow::continue_with(document);
                 }
             }
 
@@ -226,14 +224,12 @@ pub async fn photo(_: Client, update: Update) -> Flow {
 pub async fn video(_: Client, update: Update) -> Flow {
     match update {
         Update::NewMessage(message) | Update::MessageEdited(message) => {
-            if let Some(media) = message.media() {
-                if let Media::Document(document) = media {
-                    if document
-                        .mime_type()
-                        .map_or(false, |mime| mime.starts_with("video/"))
-                    {
-                        return flow::continue_with(document);
-                    }
+            if let Some(Media::Document(document)) = message.media() {
+                if document
+                    .mime_type()
+                    .map_or(false, |mime| mime.starts_with("video/"))
+                {
+                    return flow::continue_with(document);
                 }
             }
 
@@ -281,11 +277,9 @@ pub async fn sticker(_: Client, update: Update) -> Flow {
 pub async fn animated_sticker(_: Client, update: Update) -> Flow {
     match update {
         Update::NewMessage(message) | Update::MessageEdited(message) => {
-            if let Some(media) = message.media() {
-                if let Media::Document(document) = media {
-                    if document.is_animated() {
-                        return flow::continue_with(document);
-                    }
+            if let Some(Media::Document(document)) = message.media() {
+                if document.is_animated() {
+                    return flow::continue_with(document);
                 }
             }
 
@@ -649,16 +643,14 @@ pub async fn reply_audio(_: Client, update: Update) -> Flow {
             if message.reply_to_message_id().is_some() {
                 let reply = message.get_reply().await.unwrap().unwrap();
 
-                if let Some(media) = reply.media() {
-                    if let Media::Document(document) = media {
-                        if document.audio_title().is_some()
-                            || document.performer().is_some()
-                            || document
-                                .mime_type()
-                                .map_or(false, |mime| mime.starts_with("audio/"))
-                        {
-                            return flow::continue_with(document);
-                        }
+                if let Some(Media::Document(document)) = reply.media() {
+                    if document.audio_title().is_some()
+                        || document.performer().is_some()
+                        || document
+                            .mime_type()
+                            .map_or(false, |mime| mime.starts_with("audio/"))
+                    {
+                        return flow::continue_with(document);
                     }
                 }
             }
@@ -700,14 +692,12 @@ pub async fn reply_video(_: Client, update: Update) -> Flow {
             if message.reply_to_message_id().is_some() {
                 let reply = message.get_reply().await.unwrap().unwrap();
 
-                if let Some(media) = reply.media() {
-                    if let Media::Document(document) = media {
-                        if document
-                            .mime_type()
-                            .map_or(false, |mime| mime.starts_with("video/"))
-                        {
-                            return flow::continue_with(document);
-                        }
+                if let Some(Media::Document(document)) = reply.media() {
+                    if document
+                        .mime_type()
+                        .map_or(false, |mime| mime.starts_with("video/"))
+                    {
+                        return flow::continue_with(document);
                     }
                 }
             }
@@ -767,11 +757,9 @@ pub async fn reply_animated_sticker(_: Client, update: Update) -> Flow {
             if message.reply_to_message_id().is_some() {
                 let reply = message.get_reply().await.unwrap().unwrap();
 
-                if let Some(media) = reply.media() {
-                    if let Media::Document(document) = media {
-                        if document.is_animated() {
-                            return flow::continue_with(document);
-                        }
+                if let Some(Media::Document(document)) = reply.media() {
+                    if document.is_animated() {
+                        return flow::continue_with(document);
                     }
                 }
             }

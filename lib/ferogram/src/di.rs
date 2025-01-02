@@ -48,6 +48,20 @@ impl Injector {
         self.resources.len()
     }
 
+    /// Check if the injector is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let injector = unimplemented!();
+    /// let is_empty = injector.is_empty();
+    /// # }
+    /// ```
+    pub fn is_empty(&self) -> bool {
+        self.resources.is_empty()
+    }
+
     /// Insert a new resource.
     ///
     /// # Examples
@@ -61,7 +75,7 @@ impl Injector {
     pub fn insert<R: Clone + Send + Sync + 'static>(&mut self, value: R) {
         self.resources
             .entry(TypeId::of::<R>())
-            .or_insert_with(VecDeque::new)
+            .or_default()
             .push_back(Resource::new(value));
     }
 
@@ -92,10 +106,7 @@ impl Injector {
     /// ```
     pub fn extend(&mut self, other: &mut Self) {
         for (type_id, values) in other.resources.drain() {
-            self.resources
-                .entry(type_id)
-                .or_insert_with(VecDeque::new)
-                .extend(values);
+            self.resources.entry(type_id).or_default().extend(values);
         }
     }
 

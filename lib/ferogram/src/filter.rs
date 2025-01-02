@@ -57,30 +57,24 @@ pub trait Filter: CloneFilter + Send + Sync + 'static {
 }
 
 #[async_trait]
-impl<T: Clone + ?Sized, F, O: Into<Flow>> Filter for T
+impl<T: Clone, F, O: Into<Flow>> Filter for T
 where
     T: Fn(Client, Update) -> F + Send + Sync + 'static,
     F: Future<Output = O> + Send + Sync + 'static,
 {
     async fn check(&mut self, client: Client, update: Update) -> Flow {
-        match self(client, update).await.try_into() {
-            Ok(flow) => flow,
-            Err(_) => flow::break_now(),
-        }
+        self(client, update).await.into()
     }
 }
 
 #[async_trait]
-impl<T: ?Sized, F, O: Into<Flow>> Filter for Arc<T>
+impl<F, O: Into<Flow>> Filter for Arc<T>
 where
     T: Fn(Client, Update) -> F + Send + Sync + 'static,
     F: Future<Output = O> + Send + Sync + 'static,
 {
     async fn check(&mut self, client: Client, update: Update) -> Flow {
-        match self(client, update).await.try_into() {
-            Ok(flow) => flow,
-            Err(_) => flow::break_now(),
-        }
+        self(client, update).await.into()
     }
 }
 

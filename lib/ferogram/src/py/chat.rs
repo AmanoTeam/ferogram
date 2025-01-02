@@ -233,6 +233,6 @@ impl From<tl::enums::UserStatus> for UserStatus {
 
 impl From<&tl::enums::UserStatus> for UserStatus {
     fn from(status: &tl::enums::UserStatus) -> Self {
-        <&tl::enums::UserStatus as Into<Self>>::into(status)
+        status.into()
     }
 }

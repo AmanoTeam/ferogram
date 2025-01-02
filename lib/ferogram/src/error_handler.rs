@@ -29,30 +29,24 @@ pub trait ErrorHandler: CloneErrorHandler + Send + Sync + 'static {
 }
 
 #[async_trait]
-impl<T: Clone + ?Sized, F, O: Into<Flow>> ErrorHandler for T
+impl<T: Clone, F, O: Into<Flow>> ErrorHandler for T
 where
     T: Fn(Client, Update, Error) -> F + Send + Sync + 'static,
     F: Future<Output = O> + Send + Sync + 'static,
 {
     async fn run(&self, client: Client, update: Update, error: Error) -> Flow {
-        match self(client, update, error).await.try_into() {
-            Ok(flow) => flow,
-            Err(_) => flow::break_now(),
-        }
+        self(client, update, error).await.into()
     }
 }
 
 #[async_trait]
-impl<T: ?Sized, F, O: Into<Flow>> ErrorHandler for Arc<T>
+impl<F, O: Into<Flow>> ErrorHandler for Arc<T>
 where
     T: Fn(Client, Update, Error) -> F + Send + Sync + 'static,
     F: Future<Output = O> + Send + Sync + 'static,
 {
     async fn run(&self, client: Client, update: Update, error: Error) -> Flow {
-        match self(client, update, error).await.try_into() {
-            Ok(flow) => flow,
-            Err(_) => flow::break_now(),
-        }
+        self(client, update, error).await.into()
     }
 }
 
