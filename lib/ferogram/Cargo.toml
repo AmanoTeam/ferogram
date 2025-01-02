@@ -21,7 +21,8 @@ python = ["pyo3", "pyo3-async-runtimes"]
 
 [dependencies]
 ferogram-macros = { path = "../ferogram-macros", optional = true }
-grammers-client = { git = "https://github.com/Lonami/grammers" }
+grammers-client = { git = "https://github.com/Lonami/grammers.git" }
+grammers-mtsender = { git = "https://github.com/Lonami/grammers.git" }
 
 log = "*"
 mlua = { version = "*", features = ["async", "lua54", "module"], optional = true }

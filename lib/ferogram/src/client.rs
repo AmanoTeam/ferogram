@@ -1,4 +1,4 @@
-// Copyright 2024 - Andriel Ferreira
+// Copyright 2024-2025 - Andriel Ferreira
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // https://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -8,9 +8,10 @@
 
 //! Client module.
 
-use std::{net::SocketAddr, path::Path};
+use std::path::Path;
 
 use grammers_client::{session::Session, Config, InitParams, ReconnectionPolicy, SignInError};
+use grammers_mtsender::ServerAddr;
 
 use crate::{di, utils::prompt, Context, Dispatcher, ErrorHandler, Result};
 
@@ -584,7 +585,7 @@ impl ClientBuilder {
     /// let client = client.server_address("127.0.0.1:8080");
     /// # }
     /// ```
-    pub fn server_address(mut self, server_address: SocketAddr) -> Self {
+    pub fn server_address(mut self, server_address: ServerAddr) -> Self {
         self.init_params.server_addr = Some(server_address);
         self
     }

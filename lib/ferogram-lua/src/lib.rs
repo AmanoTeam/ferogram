@@ -1,4 +1,4 @@
-// Copyright 2024 - Andriel Ferreira
+// Copyright 2024-2025 - Andriel Ferreira
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // https://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -12,6 +12,7 @@
 //!
 //! Lua extension.
 
+#[allow(unused_imports)]
 use ferogram::lua::*;
 use mlua::{lua_module, prelude::*};
 

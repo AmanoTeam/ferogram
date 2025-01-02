@@ -1,4 +1,4 @@
-// Copyright 2024 - Andriel Ferreira
+// Copyright 2024-2025 - Andriel Ferreira
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // https://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -44,11 +44,11 @@ impl Chat {
 
     /// User first name or group/channel title.
     #[getter]
-    pub fn first_name(&self) -> String {
+    pub fn first_name(&self) -> Option<String> {
         match &self.0 {
-            types::Chat::User(u) => u.first_name().to_string(),
-            types::Chat::Group(g) => g.title().to_string(),
-            types::Chat::Channel(c) => c.title().to_string(),
+            types::Chat::User(u) => u.first_name().map(ToString::to_string),
+            types::Chat::Group(g) => g.title().map(ToString::to_string),
+            types::Chat::Channel(c) => Some(c.title().to_string()),
         }
     }
 
@@ -63,11 +63,11 @@ impl Chat {
 
     /// Chat full name.
     #[getter]
-    pub fn full_name(&self) -> String {
+    pub fn full_name(&self) -> Option<String> {
         match &self.0 {
-            types::Chat::User(u) => u.full_name().to_string(),
-            types::Chat::Group(g) => g.title().to_string(),
-            types::Chat::Channel(c) => c.title().to_string(),
+            types::Chat::User(u) => Some(u.full_name().to_string()),
+            types::Chat::Group(g) => g.title().map(ToString::to_string),
+            types::Chat::Channel(c) => Some(c.title().to_string()),
         }
     }
 
