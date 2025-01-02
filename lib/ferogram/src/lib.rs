@@ -22,7 +22,7 @@ pub mod flow;
 pub mod handler;
 mod plugin;
 mod router;
-pub(crate) mod utils;
+pub mod utils;
 
 pub use client::{Client, ClientBuilder as Builder};
 pub use context::Context;
