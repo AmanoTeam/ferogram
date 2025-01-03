@@ -14,7 +14,7 @@ use futures_util::future::{select, Either};
 use grammers_client::{
     types::{
         media::Uploaded, ActionSender, CallbackQuery, Chat, InlineQuery, InlineSend, InputMessage,
-        Message, PackedChat, User,
+        Media, Message, PackedChat, Photo, User,
     },
     InvocationError, Update,
 };
@@ -61,7 +61,7 @@ impl Context {
 
     /// Clones the context with a new update.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -85,7 +85,7 @@ impl Context {
 
     /// Returns the client.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -99,7 +99,7 @@ impl Context {
 
     /// Returns the update.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -115,7 +115,7 @@ impl Context {
     ///
     /// Returns `None` if the update is not/not from a message.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -135,7 +135,7 @@ impl Context {
     ///
     /// Returns `None` if the update is not/not from a message.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -156,7 +156,7 @@ impl Context {
     ///
     /// Returns `None` if the update not has a sender.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -180,7 +180,7 @@ impl Context {
     ///
     /// Returns `None` if the update is not/not from a callback query or inline query.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -203,7 +203,7 @@ impl Context {
     ///
     /// Returns `None` if the update is not/not from a message.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -227,7 +227,7 @@ impl Context {
     ///
     /// Returns `None` if the update is not a callback query.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -246,7 +246,7 @@ impl Context {
     ///
     /// Returns `None` if the update is not an inline query.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -265,7 +265,7 @@ impl Context {
     ///
     /// Returns `None` if the update is not an inline send.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -286,7 +286,7 @@ impl Context {
     ///
     /// Returns `Ok(())` if the message was edited.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -312,7 +312,7 @@ impl Context {
     ///
     /// Returns the sent message.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -348,7 +348,7 @@ impl Context {
     ///
     /// Returns the replied message.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -377,7 +377,7 @@ impl Context {
     ///
     /// Returns `Ok(())` if the message was deleted.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -401,7 +401,7 @@ impl Context {
     ///
     /// Returns `Ok(())` if the message was refetched.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -425,7 +425,7 @@ impl Context {
     ///
     /// Returns `None` if the message is not replying to another message.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -449,7 +449,7 @@ impl Context {
     ///
     /// Returns the forwarded message.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -477,7 +477,7 @@ impl Context {
     ///
     /// Returns the uploaded file.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -497,7 +497,7 @@ impl Context {
     ///
     /// Returns the uploaded file.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -523,7 +523,7 @@ impl Context {
     ///
     /// Returns the forwarded message.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -551,7 +551,7 @@ impl Context {
     ///
     /// Returns the edited or replied message.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -588,7 +588,7 @@ impl Context {
     ///
     /// Returns `Ok(())` if the message was deleted.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -608,7 +608,7 @@ impl Context {
     ///
     /// Returns the number of messages deleted.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -632,7 +632,7 @@ impl Context {
     ///
     /// Not works with bot clients.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -647,7 +647,7 @@ impl Context {
     pub async fn get_message(&self, message_id: i32) -> Result<Option<Message>, InvocationError> {
         self.get_messages(vec![message_id])
             .await
-            .map(|mut v| v.pop().unwrap_or(None))
+            .map(|mut v| v.pop().unwrap_or_default())
     }
 
     /// Returns the messages in the chat with the given IDs.
@@ -656,7 +656,7 @@ impl Context {
     ///
     /// Not works with bot clients.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -683,7 +683,7 @@ impl Context {
     ///
     /// Not works with bot clients.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -708,7 +708,7 @@ impl Context {
     ///
     /// Not works with bot clients.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -749,7 +749,7 @@ impl Context {
     ///
     /// Not works with bot clients.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -788,7 +788,7 @@ impl Context {
     ///
     /// Returns `None` if the timeout is reached.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -813,7 +813,7 @@ impl Context {
     ///
     /// If the timeout is `None`, it will be set to 30 seconds.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -860,7 +860,7 @@ impl Context {
     ///
     /// If the timeout is `None`, it will be set to 30 seconds.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -898,7 +898,7 @@ impl Context {
     ///
     /// If the timeout is `None`, it will be set to 30 seconds.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -926,7 +926,7 @@ impl Context {
     ///
     /// If the timeout is `None`, it will be set to 30 seconds.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -957,7 +957,7 @@ impl Context {
     ///
     /// If the timeout is `None`, it will be set to 30 seconds.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -988,7 +988,7 @@ impl Context {
     ///
     /// If the timeout is `None`, it will be set to 30 seconds.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -1015,7 +1015,86 @@ impl Context {
         }
     }
 
+    /// Returns the media of the message.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let media = ctx.media().await?;
+    /// # }
+    /// ```
+    pub async fn media(&self) -> Option<Media> {
+        if let Some(message) = self.message().await {
+            return message.media();
+        }
+
+        None
+    }
+
+    /// Returns the photo of the message.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// let photo = ctx.photo().await?;
+    /// # }
+    /// ```
+    pub async fn photo(&self) -> Option<Photo> {
+        if let Some(message) = self.message().await {
+            return message.photo();
+        }
+
+        None
+    }
+
+    /// Returns if the message has a media.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// if ctx.has_media().await {
+    ///     ctx.send("Hello, world!").await?;
+    /// }
+    /// # }
+    /// ```
+    pub async fn has_media(&self) -> bool {
+        self.media().await.is_some()
+    }
+
+    /// Returns if the message has a photo.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// if ctx.has_photo().await {
+    ///     ctx.send("Hello, world!").await?;
+    /// }
+    /// # }
+    /// ```
+    pub async fn has_photo(&self) -> bool {
+        self.photo().await.is_some()
+    }
+
     /// Returns if the chat is private (an user).
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// if ctx.is_private() {
+    ///     ctx.send("Hello, world!").await?;
+    /// }
+    /// # }
+    /// ```
     pub fn is_private(&self) -> bool {
         self.chat()
             .map(|chat| matches!(chat, Chat::User(_)))
@@ -1023,6 +1102,17 @@ impl Context {
     }
 
     /// Returns if the chat is a group.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// if ctx.is_group() {
+    ///     ctx.send("Hello, world!").await?;
+    /// }
+    /// # }
+    /// ```
     pub fn is_group(&self) -> bool {
         self.chat()
             .map(|chat| matches!(chat, Chat::Group(_)))
@@ -1030,6 +1120,17 @@ impl Context {
     }
 
     /// Returns if the chat is a channel.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// if ctx.is_channel() {
+    ///     ctx.send("Hello, world!").await?;
+    /// }
+    /// # }
+    /// ```
     pub fn is_channel(&self) -> bool {
         self.chat()
             .map(|chat| matches!(chat, Chat::Channel(_)))
@@ -1037,6 +1138,17 @@ impl Context {
     }
 
     /// Returns if the update is a message.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// if ctx.is_message() {
+    ///     ctx.send("Hello, world!").await?;
+    /// }
+    /// # }
+    /// ```
     pub fn is_message(&self) -> bool {
         matches!(
             self.update.as_ref().expect("No update"),
@@ -1044,7 +1156,18 @@ impl Context {
         )
     }
 
-    /// Returns if the update is a edited message.
+    /// Returns if the update is an edited message.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// if ctx.is_edited() {
+    ///     ctx.send("Hello, world!").await?;
+    /// }
+    /// # }
+    /// ```
     pub fn is_edited(&self) -> bool {
         matches!(
             self.update.as_ref().expect("No update"),
@@ -1053,6 +1176,17 @@ impl Context {
     }
 
     /// Returns if the update is a callback query.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// if ctx.is_callback_query() {
+    ///     ctx.send("Hello, world!").await?;
+    /// }
+    /// # }
+    /// ```
     pub fn is_callback_query(&self) -> bool {
         matches!(
             self.update.as_ref().expect("No update"),
@@ -1061,6 +1195,17 @@ impl Context {
     }
 
     /// Returns if the update is a inline query.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// if ctx.is_inline_query() {
+    ///     ctx.send("Hello, world!").await?;
+    /// }
+    /// # }
+    /// ```
     pub fn is_inline_query(&self) -> bool {
         matches!(
             self.update.as_ref().expect("No update"),
@@ -1069,6 +1214,17 @@ impl Context {
     }
 
     /// Returns if the update is a inline send.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// if ctx.is_inline_send() {
+    ///     ctx.send("Hello, world!").await?;
+    /// }
+    /// # }
+    /// ```
     pub fn is_inline_send(&self) -> bool {
         matches!(
             self.update.as_ref().expect("No update"),
@@ -1077,6 +1233,17 @@ impl Context {
     }
 
     /// Returns if is a raw update.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let ctx = unimplemented!();
+    /// if ctx.is_raw() {
+    ///     ctx.send("Hello, world!").await?;
+    /// }
+    /// # }
+    /// ```
     pub fn is_raw(&self) -> bool {
         matches!(self.update.as_ref().expect("No update"), Update::Raw(_))
     }
