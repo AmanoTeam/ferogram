@@ -6,6 +6,7 @@ license = "MIT OR Apache-2.0"
 description = """
 Ferogram is a simple telegram bot framework written in Rust.
 """
+readme = "README.md"
 homepage = "https://github.com/AmanoTeam/ferogram"
 repository = "https://github.com/AmanoTeam/ferogram"
 keywords = ["telegram", "bot", "framework", "grammers"]
@@ -23,9 +24,9 @@ lua = ["mlua"]
 python = ["pyo3", "pyo3-async-runtimes"]
 
 [dependencies]
-ferogram-macros = { path = "../ferogram-macros", optional = true }
-grammers-client = { git = "https://github.com/Lonami/grammers.git" }
-grammers-mtsender = { git = "https://github.com/Lonami/grammers.git" }
+ferogram-macros = { path = "../ferogram-macros", version = "0.1.0", optional = true }
+grammers-client = { git = "https://github.com/Lonami/grammers.git", version = "0.7.0" }
+grammers-mtsender = { git = "https://github.com/Lonami/grammers.git", version = "0.7.0" }
 
 log = "0.4.22"
 mlua = { version = "^0.10", features = ["async", "lua54", "module"], optional = true }

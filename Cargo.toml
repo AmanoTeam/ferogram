@@ -6,3 +6,9 @@ members = [
     "lib/ferogram-macros",
 ]
 resolver = "2"
+
+[patch.crates-io]
+ferogram = { path = "lib/ferogram" }
+# ferogram-lua = { path = "lib/ferogram-lua" }
+ferogram-macros = { path = "lib/ferogram-macros" }
+ferogram-python = { path = "lib/ferogram-python" }
