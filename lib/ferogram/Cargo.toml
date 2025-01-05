@@ -27,16 +27,16 @@ ferogram-macros = { path = "../ferogram-macros", optional = true }
 grammers-client = { git = "https://github.com/Lonami/grammers.git" }
 grammers-mtsender = { git = "https://github.com/Lonami/grammers.git" }
 
-log = "*"
-mlua = { version = "*", features = ["async", "lua54", "module"], optional = true }
-pyo3 = { version = "*", features = ["experimental-async", "macros"], optional = true }
-regex = "1"
-tokio = { version = "1", features = ["fs", "rt", "signal", "sync"] }
-rpassword = "7"
-async-trait = "*"
-futures-util = { version = "*", default-features = false, features = ["alloc"] }
-async-recursion = "1"
-pyo3-async-runtimes = { version = "*", features = ["tokio-runtime"], optional = true }
+log = "0.4.22"
+mlua = { version = "^0.10", features = ["async", "lua54", "module"], optional = true }
+pyo3 = { version = "^0.23", features = ["experimental-async", "macros"], optional = true }
+regex = "1.11.1"
+tokio = { version = "^1.42", features = ["fs", "rt", "signal", "sync"] }
+rpassword = "7.3.1"
+async-trait = "^0.1"
+futures-util = { version = "^0.3", default-features = false, features = ["alloc"] }
+async-recursion = "^1.1"
+pyo3-async-runtimes = { version = "^0.23", features = ["tokio-runtime"], optional = true }
 
 [dev-dependencies]
-tokio = { version = "1", features = ["macros"] }
+tokio = { version = "^1.42", features = ["macros"] }

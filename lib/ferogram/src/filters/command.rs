@@ -18,8 +18,29 @@ use crate::{Filter, Flow};
 pub struct Command {
     pub(crate) prefixes: Vec<String>,
     pub(crate) command: String,
+    pub(crate) description: String,
 
     pub(crate) username: Arc<Mutex<Option<String>>>,
+}
+
+impl Command {
+    /// Sets the description for the command.
+    ///
+    /// # Arguments
+    ///
+    /// * `description` - A string slice that holds the description of the command.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use ferogram::filter::command;
+    ///
+    /// let mut command = command("hello").description("Say hello to the user.");
+    /// ```
+    pub fn description(mut self, description: &str) -> Self {
+        self.description = description.to_string();
+        self
+    }
 }
 
 #[async_trait]

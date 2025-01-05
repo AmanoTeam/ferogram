@@ -17,7 +17,7 @@ crate-type = ["cdylib"]
 [dependencies]
 ferogram = { path = "../ferogram", features = ["lua"] }
 
-mlua = { version = "*", features = ["async", "lua54", "module"] }
+mlua = { version = "^0.10", features = ["async", "lua54", "module"] }
 
 [target.x86_64-apple-darwin]
 rustflags = [

@@ -120,10 +120,11 @@ pub fn regex(pat: &'static str) -> impl Filter {
 /// Pass if the message matches the specified command.
 ///
 /// This filter is a custom [`regex`] filter, so it accepts regex syntax.
-pub fn command(pat: &'static str) -> impl Filter {
+pub fn command(pat: &'static str) -> Command {
     Command {
         prefixes: DEFAULT_PREFIXES.into_iter().map(regex::escape).collect(),
         command: pat.to_owned(),
+        description: String::new(),
 
         username: Arc::new(Mutex::new(None)),
     }
@@ -132,20 +133,23 @@ pub fn command(pat: &'static str) -> impl Filter {
 /// Pass if the message matches the specified command with custom prefixes.
 ///
 /// This filter is a custom [`regex`] filter, so it accepts a bit of regex syntax.
-pub fn command_with(pres: &'static [&'static str], pat: &'static str) -> impl Filter {
+pub fn command_with(pres: &'static [&'static str], pat: &'static str) -> Command {
     Command {
         prefixes: pres.iter().map(|pre| regex::escape(pre)).collect(),
         command: pat.to_owned(),
+        description: String::new(),
 
         username: Arc::new(Mutex::new(None)),
     }
 }
 
 /// Pass if the message matches any of the specified commands.
-pub fn commands(pats: &'static [&'static str]) -> impl Filter {
+pub fn commands(pats: &'static [&'static str]) -> Command {
     Command {
         prefixes: DEFAULT_PREFIXES.into_iter().map(regex::escape).collect(),
         command: pats.join("|"),
+        description: String::new(),
+
         username: Arc::new(Mutex::new(None)),
     }
 }
@@ -153,10 +157,12 @@ pub fn commands(pats: &'static [&'static str]) -> impl Filter {
 /// Pass if the message matches any of the specified commands with custom prefixes.
 ///
 /// This filter is a custom [`regex`] filter, so it accepts a bit of regex syntax.
-pub fn commands_with(pres: &'static [&'static str], pats: &'static [&'static str]) -> impl Filter {
+pub fn commands_with(pres: &'static [&'static str], pats: &'static [&'static str]) -> Command {
     Command {
         prefixes: pres.iter().map(|pre| regex::escape(pre)).collect(),
         command: pats.join("|"),
+        description: String::new(),
+
         username: Arc::new(Mutex::new(None)),
     }
 }
