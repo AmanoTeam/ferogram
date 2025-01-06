@@ -14,7 +14,7 @@ mod or;
 use std::sync::Arc;
 
 pub(crate) use and::And;
-use command::Command;
+pub(crate) use command::Command;
 use grammers_client::{
     grammers_tl_types as tl,
     types::{Chat, Media},

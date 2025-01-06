@@ -11,7 +11,7 @@
 use async_recursion::async_recursion;
 use grammers_client::Update;
 
-use crate::{di::Injector, Handler, Result};
+use crate::{di::Injector, filter::Command, Handler, Result};
 
 /// A router.
 ///
@@ -56,6 +56,20 @@ impl Router {
         let router = router(Self::default());
         self.handlers.extend(router.handlers);
         self
+    }
+
+    /// Returns the commands from the handlers.
+    pub(crate) fn get_commands(&self) -> Vec<Command> {
+        let mut commands = Vec::new();
+
+        commands.extend(
+            self.handlers
+                .iter()
+                .filter_map(|handler| handler.command.clone()),
+        );
+        commands.extend(self.routers.iter().flat_map(|router| router.get_commands()));
+
+        commands
     }
 
     /// Handle the update sent by Telegram.

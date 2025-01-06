@@ -11,7 +11,7 @@
 use grammers_client::{types::Chat, Client, Update};
 use tokio::sync::broadcast::Sender;
 
-use crate::{di, Context, Plugin, Result, Router};
+use crate::{di, filters::Command, Context, Plugin, Result, Router};
 
 /// A dispatcher.
 ///
@@ -121,6 +121,20 @@ impl Dispatcher {
         self.plugins.push(plugin);
 
         self
+    }
+
+    /// Returns the commands from the routers and plugins.
+    pub(crate) fn get_commands(&self) -> Vec<Command> {
+        let mut commands = Vec::new();
+
+        commands.extend(self.routers.iter().flat_map(|router| router.get_commands()));
+        commands.extend(
+            self.plugins
+                .iter()
+                .flat_map(|plugin| plugin.router.get_commands()),
+        );
+
+        commands
     }
 
     /// Handle the update sent by Telegram.

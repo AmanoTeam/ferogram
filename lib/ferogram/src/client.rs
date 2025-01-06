@@ -10,7 +10,9 @@
 
 use std::path::Path;
 
-use grammers_client::{session::Session, Config, InitParams, ReconnectionPolicy, SignInError};
+use grammers_client::{
+    grammers_tl_types as tl, session::Session, Config, InitParams, ReconnectionPolicy, SignInError,
+};
 use grammers_mtsender::ServerAddr;
 
 use crate::{di, utils::prompt, Context, Dispatcher, ErrorHandler, Result};
@@ -29,6 +31,8 @@ pub struct Client {
 
     /// Whether the client is connected.
     is_connected: bool,
+    /// Whether is to update Telegram's bot commands.
+    set_bot_commands: bool,
     /// Wheter is to wait for a `Ctrl + C` signal to close the connection and exit the app.
     wait_for_ctrl_c: bool,
 
@@ -240,6 +244,35 @@ impl Client {
         let err_handler = self.err_handler;
         let ready_handler = self.ready_handler;
 
+        if self.set_bot_commands {
+            let mut commands = Vec::new();
+
+            let command_filters = dispatcher.get_commands();
+            for command_filter in command_filters.into_iter() {
+                let patterns = command_filter
+                    .command
+                    .split("|")
+                    .filter(|pattern| pattern.len() > 1)
+                    .collect::<Vec<_>>();
+                let description = command_filter.description;
+
+                for pattern in patterns.iter() {
+                    commands.push(tl::enums::BotCommand::Command(tl::types::BotCommand {
+                        command: pattern.to_string(),
+                        description: description.to_string(),
+                    }));
+                }
+            }
+
+            handle
+                .invoke(&tl::functions::bots::SetBotCommands {
+                    scope: tl::enums::BotCommandScope::Default,
+                    lang_code: "en".to_string(),
+                    commands,
+                })
+                .await?;
+        }
+
         let client = handle.clone();
 
         tokio::task::spawn(async move {
@@ -332,7 +365,9 @@ pub struct ClientBuilder {
     /// The initial parameters.
     init_params: InitParams,
 
-    /// Wheter is to wait for a `Ctrl + C` signal to close the connection and exit the app.
+    /// Whether is to update Telegram's bot commands.
+    set_bot_commands: bool,
+    /// Whether is to wait for a `Ctrl + C` signal to close the connection and exit the app.
     wait_for_ctrl_c: bool,
 
     /// The global error handler.
@@ -409,6 +444,7 @@ impl ClientBuilder {
             session_file: Some(session_file.to_string()),
 
             is_connected: false,
+            set_bot_commands: self.set_bot_commands,
             wait_for_ctrl_c: self.wait_for_ctrl_c,
 
             err_handler: self.err_handler,
@@ -647,6 +683,16 @@ impl ClientBuilder {
     /// ```
     pub fn wait_for_ctrl_c(mut self) -> Self {
         self.wait_for_ctrl_c = true;
+        self
+    }
+
+    /// Updates the Telegram-side bot's command list by collecting all the commands
+    /// from the dispatcher's handlers.
+    ///
+    /// Only commands that has more than `1` char will be registered.
+    /// Ex: `start`, `help`...
+    pub fn set_bot_commands(mut self) -> Self {
+        self.set_bot_commands = true;
         self
     }
 

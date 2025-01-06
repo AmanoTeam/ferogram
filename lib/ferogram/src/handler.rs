@@ -10,7 +10,7 @@
 
 use grammers_client::{Client, Update};
 
-use crate::{di, flow, ErrorHandler, Filter, Flow};
+use crate::{di, filter::Command, flow, ErrorHandler, Filter, Flow};
 
 /// A handler.
 ///
@@ -21,7 +21,9 @@ pub struct Handler {
     update_type: UpdateType,
 
     /// The filter.
-    filter: Option<Box<dyn Filter>>,
+    pub(crate) filter: Option<Box<dyn Filter>>,
+    /// The command.
+    pub(crate) command: Option<Command>,
     /// The endpoint.
     pub(crate) endpoint: Option<di::Endpoint>,
     /// The error handler.
@@ -31,10 +33,13 @@ pub struct Handler {
 impl Handler {
     /// Creates a new [`HandlerType::NewMessage`] handler.
     pub fn new_message<F: Filter>(filter: F) -> Self {
+        let command = filter.as_any().downcast_ref::<Command>().cloned();
+
         Self {
             update_type: UpdateType::NewMessage,
 
             filter: Some(Box::new(filter)),
+            command,
             endpoint: None,
             err_handler: None,
         }
@@ -46,6 +51,7 @@ impl Handler {
             update_type: UpdateType::Raw,
 
             filter: Some(Box::new(filter)),
+            command: None,
             endpoint: None,
             err_handler: None,
         }
@@ -53,10 +59,13 @@ impl Handler {
 
     /// Creates a new [`HandlerType::MessageEdited`] handler.
     pub fn message_edited<F: Filter>(filter: F) -> Self {
+        let command = filter.as_any().downcast_ref::<Command>().cloned();
+
         Self {
             update_type: UpdateType::MessageEdited,
 
             filter: Some(Box::new(filter)),
+            command,
             endpoint: None,
             err_handler: None,
         }
@@ -68,6 +77,7 @@ impl Handler {
             update_type: UpdateType::MessageDeleted,
 
             filter: Some(Box::new(filter)),
+            command: None,
             endpoint: None,
             err_handler: None,
         }
@@ -79,6 +89,7 @@ impl Handler {
             update_type: UpdateType::CallbackQuery,
 
             filter: Some(Box::new(filter)),
+            command: None,
             endpoint: None,
             err_handler: None,
         }
@@ -90,6 +101,7 @@ impl Handler {
             update_type: UpdateType::InlineQuery,
 
             filter: Some(Box::new(filter)),
+            command: None,
             endpoint: None,
             err_handler: None,
         }
@@ -220,6 +232,7 @@ pub fn then<I, H: di::Handler>(endpoint: impl di::IntoHandler<I, Handler = H>) -
         update_type: UpdateType::Raw,
 
         filter: None,
+        command: None,
         endpoint: Some(Box::new(endpoint.into_handler())),
         err_handler: None,
     }

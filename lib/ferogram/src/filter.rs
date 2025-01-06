@@ -8,7 +8,7 @@
 
 //! Filters module.
 
-use std::sync::Arc;
+use std::{any::Any, sync::Arc};
 
 use async_trait::async_trait;
 use futures_util::Future;
@@ -53,6 +53,14 @@ pub trait Filter: CloneFilter + Send + Sync + 'static {
         Not {
             filter: Box::new(self),
         }
+    }
+
+    /// Returns the filter as a `Any` trait object..
+    fn as_any(&self) -> &dyn Any
+    where
+        Self: Sized,
+    {
+        self
     }
 }
 
