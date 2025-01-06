@@ -22,7 +22,7 @@ pub struct Flow {
 impl Flow {
     /// Changes the current action to [`Action::Break`].
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -36,7 +36,7 @@ impl Flow {
 
     /// Changes the current action to [`Action::Continue`].
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -50,7 +50,7 @@ impl Flow {
 
     /// Injects a value.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -64,7 +64,7 @@ impl Flow {
 
     /// Checks if the current action is [`Action::Break`].
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -78,7 +78,7 @@ impl Flow {
 
     /// Checks if the current action is [`Action::Continue`].
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {

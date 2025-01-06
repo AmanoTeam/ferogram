@@ -47,7 +47,7 @@ pub struct Client {
 impl Client {
     /// Creates a new bot instance.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # use ferogram::Client;
@@ -62,7 +62,7 @@ impl Client {
 
     /// Creates a new user instance.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # use ferogram::Client;
@@ -84,7 +84,7 @@ impl Client {
     /// * `API_ID`: developer's API ID from my.telegram.org
     /// * `API_HASH`: developer's API HASH from my.telegram.org
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # use ferogram::Client;
@@ -117,7 +117,7 @@ impl Client {
 
     /// Connects to the Telegram server, but don't listen to updates.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -174,7 +174,7 @@ impl Client {
 
     /// Gets the inner grammers' `Client` instance.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -187,7 +187,7 @@ impl Client {
 
     /// Configures the dispatcher.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -203,7 +203,7 @@ impl Client {
 
     /// Whether the client is connected.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -216,7 +216,7 @@ impl Client {
 
     /// Creates a new context which not holds an update.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -231,7 +231,7 @@ impl Client {
 
     /// Listen to Telegram's updates and send them to the dispatcher's routers.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -326,7 +326,7 @@ impl Client {
 
     /// Keeps the connection open, but doesn't listen to the updates.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -381,7 +381,7 @@ pub struct ClientBuilder {
 impl ClientBuilder {
     /// Creates a new builder to bot instance.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -399,7 +399,7 @@ impl ClientBuilder {
 
     /// Creates a new builder to user instance.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -417,7 +417,7 @@ impl ClientBuilder {
 
     /// Builds the `Client` instance.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -457,7 +457,7 @@ impl ClientBuilder {
     ///
     /// Connects to the Telegram server, but don't listen to updates.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -473,7 +473,7 @@ impl ClientBuilder {
     ///
     /// You may obtain your own in <https://my.telegram.org/auth>.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -489,7 +489,7 @@ impl ClientBuilder {
     ///
     /// You may obtain your own in <https://my.telegram.org/auth>.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -504,7 +504,7 @@ impl ClientBuilder {
     /// Session storage where data should persist, such as authorization key, server address,
     /// and other required information by the client.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -520,7 +520,7 @@ impl ClientBuilder {
     ///
     /// Telegram uses to know your device in devices settings.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -536,7 +536,7 @@ impl ClientBuilder {
     ///
     /// Telegram uses to know your system version in devices settings.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -552,7 +552,7 @@ impl ClientBuilder {
     ///
     /// Telegram uses to know your app version in device settings.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -568,7 +568,7 @@ impl ClientBuilder {
     ///
     /// Telegram uses internally to let others know your language.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -584,7 +584,7 @@ impl ClientBuilder {
     ///
     /// By default, updates sent while the client was offline are ignored.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -601,7 +601,7 @@ impl ClientBuilder {
     /// field can be used to override said address, and is most commonly used to connect to one
     /// of Telegram's test servers instead.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -626,7 +626,7 @@ impl ClientBuilder {
     /// On flood, the library will retry *once*. If the flood error occurs a second time after
     /// sleeping, the error will be returned.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -658,7 +658,7 @@ impl ClientBuilder {
     ///
     /// When the limit is `Some`, a buffer to hold that many updates will be pre-allocated.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -674,7 +674,7 @@ impl ClientBuilder {
     ///
     /// Otherwise the code will continue running until it finds the end.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -700,7 +700,7 @@ impl ClientBuilder {
     ///
     /// Executed when the client loses the connection or the Telegram server closes it.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -733,7 +733,7 @@ impl ClientBuilder {
     ///
     /// Executed when any `handler` returns an error.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -753,7 +753,7 @@ impl ClientBuilder {
     ///
     /// Executed when the client is about to exit.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {
@@ -778,7 +778,7 @@ impl ClientBuilder {
     ///
     /// Executed when the client is ready to receive updates.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example(client: ferogram::Client) {

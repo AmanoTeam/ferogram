@@ -48,7 +48,7 @@ pub use ferogram_macros as macros;
 #[cfg(feature = "macros")]
 /// Constructs a [`di::Injector`] with a list of dependencies effortlessly.
 ///
-/// # Examples
+/// # Example
 ///
 /// ```
 /// deps![Database::connect().await, I18n::load()]
@@ -73,7 +73,7 @@ pub type Result<T> = std::result::Result<T, error_handler::Error>;
 
 /// Waits for a `Ctrl+C` signal and keep the process alive.
 ///
-/// # Examples
+/// # Example
 ///
 /// ```no_run
 /// # async fn example() {
@@ -90,7 +90,7 @@ pub async fn wait_for_ctrl_c() {
 ///
 /// Same as [`wait_for_ctrl_c`].
 ///
-/// # Examples
+/// # Example
 ///
 /// ```no_run
 /// # async fn example() {

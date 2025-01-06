@@ -34,7 +34,7 @@ pub struct Dispatcher {
 impl Dispatcher {
     /// Attachs a new router.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -53,7 +53,7 @@ impl Dispatcher {
 
     /// Attachs a injector.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -74,7 +74,7 @@ impl Dispatcher {
     ///
     /// Same as `resources`.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -92,7 +92,7 @@ impl Dispatcher {
     ///
     /// By default, the client will not handle updates from itself.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -109,7 +109,7 @@ impl Dispatcher {
     ///
     /// A plugin is a collection of routers.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -141,7 +141,7 @@ impl Dispatcher {
     ///
     /// Returns `Ok(())` if the update was handled.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {

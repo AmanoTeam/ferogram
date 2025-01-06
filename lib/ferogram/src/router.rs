@@ -27,7 +27,7 @@ pub struct Router {
 impl Router {
     /// Attachs a new handler.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -42,7 +42,7 @@ impl Router {
 
     /// Attachs a new router.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -76,7 +76,7 @@ impl Router {
     ///
     /// Returns `Ok(())` if the update was handled.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {

@@ -16,7 +16,7 @@ use crate::Result;
 
 /// Ask the user in the terminal.
 ///
-/// # Examples
+/// # Example
 ///
 /// ```no_run
 /// let token = ferogram::utils::prompt("Enter your token: ", false)?;
@@ -44,7 +44,7 @@ pub fn prompt<T: ToString>(text: T, password: bool) -> Result<String> {
 
 /// Convert bytes to string.
 ///
-/// # Examples
+/// # Example
 ///
 /// ```
 /// use ferogram::utils::bytes_to_string;

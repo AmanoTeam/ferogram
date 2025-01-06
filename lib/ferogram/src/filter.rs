@@ -55,7 +55,7 @@ pub trait Filter: CloneFilter + Send + Sync + 'static {
         }
     }
 
-    /// Returns the filter as a `Any` trait object..
+    /// Returns the filter as a `Any` trait object.
     fn as_any(&self) -> &dyn Any
     where
         Self: Sized,

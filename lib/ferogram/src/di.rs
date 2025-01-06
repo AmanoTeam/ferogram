@@ -36,7 +36,7 @@ pub struct Injector {
 impl Injector {
     /// Count of resources stored.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -50,7 +50,7 @@ impl Injector {
 
     /// Check if the injector is empty.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -64,7 +64,7 @@ impl Injector {
 
     /// Insert a new resource.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -81,7 +81,7 @@ impl Injector {
 
     /// Insert a new resource.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -96,7 +96,7 @@ impl Injector {
 
     /// Extend the resources with the resources of another injector.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -112,7 +112,7 @@ impl Injector {
 
     /// Remove a resource.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
@@ -129,7 +129,7 @@ impl Injector {
 
     /// Get a reference for a resource.
     ///
-    /// # Examples
+    /// # Example
     ///
     /// ```no_run
     /// # async fn example() {
