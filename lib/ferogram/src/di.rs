@@ -189,7 +189,7 @@ macro_rules! impl_handler {
         impl<Fut: ?Sized, Output, $($params),*> Handler for HandlerFunc<($($params,)*), Fut>
         where
             Fut: FnMut($($params),*) -> Output + Clone + Send + Sync + 'static,
-            Output: Future<Output = Result<()>> + Send + Sync + 'static,
+            Output: Future<Output = Result<()>> + Send,
             $($params: Clone + Send + Sync + 'static,)*
         {
             #[inline]
@@ -252,7 +252,7 @@ macro_rules! impl_into_handler {
         impl<Fut: ?Sized, Output, $($params),*> IntoHandler<($($params,)*)> for Fut
         where
             Fut: FnMut($($params),*) -> Output + Clone + Send + Sync + 'static,
-            Output: Future<Output = Result<()>> + Send + Sync + 'static,
+            Output: Future<Output = Result<()>> + Send,
             $($params: Clone + Send + Sync + 'static,)*
         {
             type Handler = HandlerFunc<($($params,)*), Self>;

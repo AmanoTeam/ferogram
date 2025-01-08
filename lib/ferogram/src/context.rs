@@ -299,7 +299,9 @@ impl Context {
     ///
     /// Returns an error if the message could not be edited.
     pub async fn edit<M: Into<InputMessage>>(&self, message: M) -> Result<(), InvocationError> {
-        if let Some(msg) = self.message().await {
+        if let Some(query) = self.callback_query() {
+            query.answer().edit(message).await
+        } else if let Some(msg) = self.message().await {
             msg.edit(message).await
         } else {
             panic!("Cannot edit this message")
