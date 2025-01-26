@@ -285,7 +285,7 @@ pub async fn has_audio(_: Client, update: Update) -> Flow {
                     || document.performer().is_some()
                     || document
                         .mime_type()
-                        .map_or(false, |mime| mime.starts_with("audio/"))
+                        .is_some_and(|mime| mime.starts_with("audio/"))
                 {
                     return flow::continue_with(document);
                 }
@@ -324,7 +324,7 @@ pub async fn has_video(_: Client, update: Update) -> Flow {
             if let Some(Media::Document(document)) = message.media() {
                 if document
                     .mime_type()
-                    .map_or(false, |mime| mime.starts_with("video/"))
+                    .is_some_and(|mime| mime.starts_with("video/"))
                 {
                     return flow::continue_with(document);
                 }
@@ -749,7 +749,7 @@ pub async fn reply_audio(_: Client, update: Update) -> Flow {
                         || document.performer().is_some()
                         || document
                             .mime_type()
-                            .map_or(false, |mime| mime.starts_with("audio/"))
+                            .is_some_and(|mime| mime.starts_with("audio/"))
                     {
                         return flow::continue_with(document);
                     }
@@ -796,7 +796,7 @@ pub async fn reply_video(_: Client, update: Update) -> Flow {
                 if let Some(Media::Document(document)) = reply.media() {
                     if document
                         .mime_type()
-                        .map_or(false, |mime| mime.starts_with("video/"))
+                        .is_some_and(|mime| mime.starts_with("video/"))
                     {
                         return flow::continue_with(document);
                     }
