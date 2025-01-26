@@ -570,7 +570,11 @@ impl Context {
         message: M,
     ) -> Result<Message, InvocationError> {
         if let Some(msg) = self.message().await {
-            if let Some(Chat::User(user)) = msg.sender() {
+            if let Some(query) = self.callback_query() {
+                query.answer().edit(message).await?;
+
+                return Ok(msg);
+            } else if let Some(Chat::User(user)) = msg.sender() {
                 if user.is_self() {
                     msg.edit(message).await?;
                     // FIXME: uncomment when `Message::refetch` fully works.
