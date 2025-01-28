@@ -32,13 +32,13 @@ impl MiddlewareStack {
     }
 
     /// Adds a middleware after-type in the stack.
-    pub fn after<M: Middleware + 'static>(mut self, middleware: M) -> Self {
+    pub fn after<M: Middleware>(mut self, middleware: M) -> Self {
         self.after.push(Box::new(middleware));
         self
     }
 
     /// Adds a middleware before-type in the stack.
-    pub fn before<M: Middleware + 'static>(mut self, middleware: M) -> Self {
+    pub fn before<M: Middleware>(mut self, middleware: M) -> Self {
         self.before.push(Box::new(middleware));
         self
     }

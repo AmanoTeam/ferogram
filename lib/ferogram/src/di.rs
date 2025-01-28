@@ -138,7 +138,7 @@ impl Injector {
     /// let resource = injector.get::<String>();
     /// # }
     /// ```
-    pub fn get<R: Send + Sync + 'static>(&mut self) -> Option<&R> {
+    pub fn get<R: Send + Sync + 'static>(&self) -> Option<&R> {
         self.resources
             .get(&TypeId::of::<R>())
             .and_then(|values| values.front())
@@ -146,9 +146,9 @@ impl Injector {
     }
 
     /// Updates a resource.
-    pub fn update<R: Clone + Send + Sync + 'static, F: FnOnce(R) -> R>(
+    pub fn update<R: Clone + Send + Sync + 'static>(
         &mut self,
-        f: F,
+        f: impl FnOnce(R) -> R,
     ) -> std::result::Result<(), crate::Error> {
         match self.resources.entry(TypeId::of::<R>()) {
             Entry::Occupied(mut e) => {

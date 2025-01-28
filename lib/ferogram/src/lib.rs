@@ -34,7 +34,7 @@ pub(crate) use error_handler::ErrorHandler;
 pub use filter::Filter;
 pub(crate) use flow::Flow;
 pub(crate) use handler::Handler;
-pub use middleware::Middleware;
+pub use middleware::{Middleware, MiddlewareStack};
 pub use plugin::Plugin;
 pub use router::Router;
 
