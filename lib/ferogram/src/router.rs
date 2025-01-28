@@ -194,8 +194,11 @@ impl Router {
 
 #[cfg(test)]
 mod tests {
+    use async_trait::async_trait;
+    use grammers_client::Client;
+
     use super::*;
-    use crate::handler;
+    use crate::{flow, handler, Flow, Middleware};
 
     #[test]
     fn router() {
@@ -209,5 +212,35 @@ mod tests {
             .handler(handler::then(|_update: Update| async { Ok(()) }));
 
         assert_eq!(router.handlers.len(), 4);
+    }
+
+    #[derive(Clone)]
+    struct TestMiddleware;
+
+    #[async_trait]
+    impl Middleware for TestMiddleware {
+        async fn handle(
+            &mut self,
+            _client: &Client,
+            _update: &Update,
+            _injector: &mut Injector,
+        ) -> Flow {
+            flow::break_now()
+        }
+    }
+
+    #[test]
+    fn test_middlewares() {
+        let router = Router {
+            handlers: Vec::new(),
+            routers: Vec::new(),
+            middlewares: MiddlewareStack::new(),
+        };
+
+        let updated_router = router
+            .middlewares(|middlewares| middlewares.before(TestMiddleware).after(TestMiddleware));
+
+        assert_eq!(updated_router.middlewares.before.len(), 1);
+        assert_eq!(updated_router.middlewares.after.len(), 1);
     }
 }
