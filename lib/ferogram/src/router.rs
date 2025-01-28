@@ -34,10 +34,10 @@ impl Router {
     /// ```no_run
     /// # async fn example() {
     /// # let router = unimplemented!();
-    /// let router = router.handler(handler::then(|| async { Ok(()) }));
+    /// let router = router.register(handler::then(|| async { Ok(()) }));
     /// # }
     /// ```
-    pub fn handler(mut self, handler: Handler) -> Self {
+    pub fn register(mut self, handler: Handler) -> Self {
         self.handlers.push(handler);
         self
     }
@@ -49,12 +49,12 @@ impl Router {
     /// ```no_run
     /// # async fn example() {
     /// # let router = unimplemented!();
-    /// let router = router.router(|router| {
+    /// let router = router.extend(|router| {
     ///     router
     /// });
     /// # }
     /// ```
-    pub fn router<R: FnOnce(Router) -> Router + 'static>(mut self, router: R) -> Self {
+    pub fn extend<R: FnOnce(Router) -> Router + 'static>(mut self, router: R) -> Self {
         let router = router(Self::default());
         self.handlers.extend(router.handlers);
         self
@@ -206,10 +206,10 @@ mod tests {
         let endpoint = || async { Ok(()) };
 
         let router = Router::default()
-            .handler(handler::then(|| async { Ok(()) }))
-            .handler(handler::new_message(|_, _| async { true }))
-            .handler(handler::new_update(filter).then(endpoint))
-            .handler(handler::then(|_update: Update| async { Ok(()) }));
+            .register(handler::then(|| async { Ok(()) }))
+            .register(handler::new_message(|_, _| async { true }))
+            .register(handler::new_update(filter).then(endpoint))
+            .register(handler::then(|_update: Update| async { Ok(()) }));
 
         assert_eq!(router.handlers.len(), 4);
     }
