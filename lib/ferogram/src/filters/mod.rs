@@ -427,6 +427,52 @@ pub async fn forwarded(_: Client, update: Update) -> Flow {
     flow::break_now()
 }
 
+/// Pass if the message or callback query is sent by an administrator.
+pub async fn administrator(client: Client, update: Update) -> Flow {
+    let chat;
+    let sender;
+
+    match update {
+        Update::NewMessage(message) | Update::MessageEdited(message) => {
+            chat = message.chat();
+            sender = message.sender();
+        }
+        Update::CallbackQuery(query) => {
+            chat = query.chat().clone();
+            sender = Some(query.sender().clone());
+        }
+        _ => return flow::break_now(),
+    }
+
+    match chat {
+        Chat::User(_) => return flow::continue_now(),
+        _ => {
+            if let Some(sender) = sender {
+                if let Ok(tl::enums::channels::ChannelParticipant::Participant(
+                    channel_participant,
+                )) = client
+                    .invoke(&tl::functions::channels::GetParticipant {
+                        channel: chat
+                            .pack()
+                            .try_to_input_channel()
+                            .expect("Invalid input channel"),
+                        participant: sender.pack().to_input_peer(),
+                    })
+                    .await
+                {
+                    match channel_participant.participant {
+                        tl::enums::ChannelParticipant::Admin(_)
+                        | tl::enums::ChannelParticipant::Creator(_) => return flow::continue_now(),
+                        _ => return flow::break_now(),
+                    }
+                }
+            }
+        }
+    }
+
+    flow::break_now()
+}
+
 /// Pass if the chat is private.
 ///
 /// Injects `Chat`: private chat.
