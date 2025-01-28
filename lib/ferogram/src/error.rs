@@ -28,11 +28,19 @@ impl Error {
         }
     }
 
-    // Creates a new telegram error.
+    /// Creates a new telegram error.
     pub fn telegram<E: ToString>(err: E) -> Self {
         Self {
             kind: ErrorKind::Telegram,
             message: err.to_string(),
+        }
+    }
+
+    /// Creates a new missing dependency error.
+    pub fn missing_dependency<D>() -> Self {
+        Self {
+            kind: ErrorKind::MissingDependency,
+            message: format!("Missing dependency: {:?}", std::any::type_name::<D>()),
         }
     }
 
@@ -60,6 +68,8 @@ pub enum ErrorKind {
     Timeout,
     /// The error is from Telegram.
     Telegram,
+    /// A dependency is missing.
+    MissingDependency,
     /// The error is unknown.
     #[default]
     Unknown,
@@ -70,6 +80,7 @@ impl std::fmt::Display for ErrorKind {
         match self {
             Self::Timeout => write!(f, "Timeout"),
             Self::Telegram => write!(f, "Telegram"),
+            Self::MissingDependency => write!(f, "Missing dependency"),
             Self::Unknown => write!(f, "Unknown"),
         }
     }

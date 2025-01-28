@@ -11,6 +11,7 @@
 use futures_util::Future;
 use std::{
     any::{Any, TypeId},
+    borrow::Borrow,
     collections::{hash_map::Entry, HashMap, VecDeque},
     marker::PhantomData,
     sync::Arc,
@@ -48,7 +49,7 @@ impl Injector {
         self.resources.len()
     }
 
-    /// Check if the injector is empty.
+    /// Checks if the injector is empty.
     ///
     /// # Example
     ///
@@ -62,7 +63,7 @@ impl Injector {
         self.resources.is_empty()
     }
 
-    /// Insert a new resource.
+    /// Inserts a new resource.
     ///
     /// # Example
     ///
@@ -79,7 +80,7 @@ impl Injector {
             .push_back(Resource::new(value));
     }
 
-    /// Insert a new resource.
+    /// Inserts a new resource.
     ///
     /// # Example
     ///
@@ -94,7 +95,7 @@ impl Injector {
         self
     }
 
-    /// Extend the resources with the resources of another injector.
+    /// Extends the resources with the resources of another injector.
     ///
     /// # Example
     ///
@@ -110,7 +111,7 @@ impl Injector {
         }
     }
 
-    /// Remove a resource.
+    /// Removes a resource.
     ///
     /// # Example
     ///
@@ -127,7 +128,7 @@ impl Injector {
         }
     }
 
-    /// Get a reference for a resource.
+    /// Gets a reference for a resource.
     ///
     /// # Example
     ///
@@ -142,6 +143,29 @@ impl Injector {
             .get(&TypeId::of::<R>())
             .and_then(|values| values.front())
             .and_then(|resource| resource.to_ref())
+    }
+
+    /// Updates a resource.
+    pub fn update<R: Clone + Send + Sync + 'static, F: FnOnce(R) -> R>(
+        &mut self,
+        f: F,
+    ) -> std::result::Result<(), crate::Error> {
+        match self.resources.entry(TypeId::of::<R>()) {
+            Entry::Occupied(mut e) => {
+                let resource = e
+                    .get_mut()
+                    .pop_front()
+                    .unwrap()
+                    .to::<R>()
+                    .expect("Failed to downcast");
+                let resource = f(Borrow::<R>::borrow(&resource).clone());
+                let resource = Resource::new(resource);
+                e.get_mut().push_front(resource);
+
+                Ok(())
+            }
+            Entry::Vacant(_) => Err(crate::Error::missing_dependency::<R>()),
+        }
     }
 }
 

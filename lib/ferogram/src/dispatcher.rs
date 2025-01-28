@@ -11,7 +11,7 @@
 use grammers_client::{types::Chat, Client, Update};
 use tokio::sync::broadcast::Sender;
 
-use crate::{di, filters::Command, Context, Plugin, Result, Router};
+use crate::{di, filters::Command, middleware::MiddlewareStack, Context, Plugin, Result, Router};
 
 /// A dispatcher.
 ///
@@ -24,6 +24,8 @@ pub struct Dispatcher {
     plugins: Vec<Plugin>,
     /// The main injector.
     injector: di::Injector,
+    /// The middleware stack.
+    middlewares: MiddlewareStack,
     /// The update sender.
     pub(crate) upd_sender: Sender<Update>,
 
@@ -88,6 +90,28 @@ impl Dispatcher {
         self.resources(injector)
     }
 
+    /// Attachs a middleware stack.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let dispatcher = unimplemented!();
+    /// let dispatcher = dispatcher.middlewares(|middlewares| {
+    ///     middlewares
+    ///         .before(|_, _, _| async { Ok(flow::continue_now()) })
+    ///         .after(|_, _, _| async { Ok(flow::continue_now()) })
+    /// });
+    /// # }
+    /// ```
+    pub fn middlewares<M: FnOnce(MiddlewareStack) -> MiddlewareStack>(
+        mut self,
+        middlewares: M,
+    ) -> Self {
+        self.middlewares = middlewares(self.middlewares);
+        self
+    }
+
     /// Allows the client to handle updates from itself.
     ///
     /// By default, the client will not handle updates from itself.
@@ -119,7 +143,6 @@ impl Dispatcher {
     /// ```
     pub fn plugin(mut self, plugin: Plugin) -> Self {
         self.plugins.push(plugin);
-
         self
     }
 
@@ -199,7 +222,10 @@ impl Dispatcher {
         }
 
         for router in self.routers.iter_mut() {
-            match router.handle_update(client, update, &mut injector).await {
+            match router
+                .handle_update(client, update, &mut injector, self.middlewares.clone())
+                .await
+            {
                 Ok(false) => continue,
                 Ok(true) => return Ok(()),
                 Err(e) => return Err(e),
@@ -209,7 +235,7 @@ impl Dispatcher {
         for plugin in self.plugins.iter_mut() {
             match plugin
                 .router
-                .handle_update(client, update, &mut injector)
+                .handle_update(client, update, &mut injector, self.middlewares.clone())
                 .await
             {
                 Ok(false) => continue,
@@ -230,6 +256,7 @@ impl Default for Dispatcher {
             routers: Vec::new(),
             plugins: Vec::new(),
             injector: di::Injector::default(),
+            middlewares: MiddlewareStack::new(),
             upd_sender,
 
             allow_from_self: false,

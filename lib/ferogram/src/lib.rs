@@ -20,6 +20,7 @@ pub mod filter;
 pub(crate) mod filters;
 pub mod flow;
 pub mod handler;
+mod middleware;
 mod plugin;
 mod router;
 pub mod utils;

@@ -11,7 +11,7 @@
 use async_recursion::async_recursion;
 use grammers_client::Update;
 
-use crate::{di::Injector, filter::Command, Handler, Result};
+use crate::{di::Injector, filter::Command, middleware::MiddlewareStack, Handler, Result};
 
 /// A router.
 ///
@@ -22,6 +22,8 @@ pub struct Router {
     pub(crate) handlers: Vec<Handler>,
     /// The routers.
     pub(crate) routers: Vec<Router>,
+    /// The middleware stack.
+    pub(crate) middlewares: MiddlewareStack,
 }
 
 impl Router {
@@ -55,6 +57,28 @@ impl Router {
     pub fn router<R: FnOnce(Router) -> Router + 'static>(mut self, router: R) -> Self {
         let router = router(Self::default());
         self.handlers.extend(router.handlers);
+        self
+    }
+
+    /// Attachs a middleware stack.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # async fn example() {
+    /// # let router = unimplemented!();
+    /// let router = router.middlewares(|middlewares| {
+    ///     middlewares
+    ///         .before(|_, _, _| async { Ok(flow::continue_now()) })
+    ///         .after(|_, _, _| async { Ok(flow::continue_now()) })
+    /// });
+    /// # }
+    /// ```
+    pub fn middlewares<M: FnOnce(MiddlewareStack) -> MiddlewareStack>(
+        mut self,
+        middlewares: M,
+    ) -> Self {
+        self.middlewares = middlewares(self.middlewares);
         self
     }
 
@@ -93,46 +117,60 @@ impl Router {
         client: &grammers_client::Client,
         update: &Update,
         injector: &mut Injector,
+        middlewares: MiddlewareStack,
     ) -> Result<bool> {
+        let mut middlewares = middlewares.extend(self.middlewares.clone());
+
         for handler in self.handlers.iter_mut() {
-            let flow = handler.check(client, update).await;
+            let mut middleware_flow = middlewares.handle_before(client, update, injector).await;
+            if middleware_flow.is_continue() {
+                let mut flow = handler.check(client, update).await;
+                flow.injector.extend(&mut middleware_flow.injector);
 
-            if flow.is_continue() {
-                if let Some(endpoint) = handler.endpoint.as_mut() {
-                    let mut handler_injector = flow.injector;
-                    injector.extend(&mut handler_injector);
+                if flow.is_continue() {
+                    if let Some(endpoint) = handler.endpoint.as_mut() {
+                        let mut handler_injector = flow.injector;
+                        injector.extend(&mut handler_injector);
 
-                    match update.clone() {
-                        Update::NewMessage(message) | Update::MessageEdited(message) => {
-                            injector.insert(message)
+                        match update.clone() {
+                            Update::NewMessage(message) | Update::MessageEdited(message) => {
+                                injector.insert(message)
+                            }
+                            Update::MessageDeleted(message_deletion) => {
+                                injector.insert(message_deletion)
+                            }
+                            Update::CallbackQuery(query) => injector.insert(query),
+                            Update::InlineQuery(query) => injector.insert(query),
+                            Update::InlineSend(inline_send) => injector.insert(inline_send),
+                            Update::Raw(raw) => injector.insert(raw),
+                            _ => {}
                         }
-                        Update::MessageDeleted(message_deletion) => {
-                            injector.insert(message_deletion)
-                        }
-                        Update::CallbackQuery(query) => injector.insert(query),
-                        Update::InlineQuery(query) => injector.insert(query),
-                        Update::InlineSend(inline_send) => injector.insert(inline_send),
-                        Update::Raw(raw) => injector.insert(raw),
-                        _ => {}
-                    }
 
-                    match endpoint.handle(injector).await {
-                        Ok(()) => return Ok(true),
-                        Err(e) => {
-                            if let Some(err_filter) = handler.err_handler.as_mut() {
-                                let flow = err_filter.run(client.clone(), update.clone(), e).await;
+                        match endpoint.handle(injector).await {
+                            Ok(()) => {
+                                return {
+                                    middlewares.handle_after(client, update, injector).await;
 
-                                if flow.is_continue() {
-                                    let mut flow_injector = flow.injector;
-                                    injector.extend(&mut flow_injector);
+                                    Ok(true)
+                                }
+                            }
+                            Err(e) => {
+                                if let Some(err_filter) = handler.err_handler.as_mut() {
+                                    let flow =
+                                        err_filter.run(client.clone(), update.clone(), e).await;
 
-                                    return endpoint.handle(injector).await.map(|_| true);
+                                    if flow.is_continue() {
+                                        let mut flow_injector = flow.injector;
+                                        injector.extend(&mut flow_injector);
+
+                                        return endpoint.handle(injector).await.map(|_| true);
+                                    }
+
+                                    return Ok(true);
                                 }
 
-                                return Ok(true);
+                                return Err(e);
                             }
-
-                            return Err(e);
                         }
                     }
                 }
@@ -140,7 +178,10 @@ impl Router {
         }
 
         for router in self.routers.iter_mut() {
-            match router.handle_update(client, update, injector).await {
+            match router
+                .handle_update(client, update, injector, middlewares.clone())
+                .await
+            {
                 Ok(false) => continue,
                 r @ Ok(true) => return r,
                 Err(e) => return Err(e),

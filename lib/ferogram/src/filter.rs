@@ -65,10 +65,11 @@ pub trait Filter: CloneFilter + Send + Sync + 'static {
 }
 
 #[async_trait]
-impl<T: Clone, F, O: Into<Flow>> Filter for T
+impl<T: Clone, F, O> Filter for T
 where
     T: Fn(Client, Update) -> F + Send + Sync + 'static,
     F: Future<Output = O> + Send + Sync + 'static,
+    O: Into<Flow>,
 {
     async fn check(&mut self, client: Client, update: Update) -> Flow {
         self(client, update).await.into()
@@ -76,10 +77,11 @@ where
 }
 
 #[async_trait]
-impl<T: ?Sized, F, O: Into<Flow>> Filter for Arc<T>
+impl<T: ?Sized, F, O> Filter for Arc<T>
 where
     T: Fn(Client, Update) -> F + Send + Sync + 'static,
     F: Future<Output = O> + Send + Sync + 'static,
+    O: Into<Flow>,
 {
     async fn check(&mut self, client: Client, update: Update) -> Flow {
         self(client, update).await.into()
