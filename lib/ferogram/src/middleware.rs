@@ -93,10 +93,11 @@ pub trait Middleware: CloneMiddleware + Send + Sync + 'static {
 }
 
 #[async_trait]
-impl<Fut: Clone, Output> Middleware for Fut
+impl<T: Clone, F, O> Middleware for T
 where
-    Fut: for<'a> FnMut(&'a Client, &'a Update, &'a mut Injector) -> Output + Send + Sync + 'static,
-    Output: Future<Output = Flow> + Send,
+    T: for<'a> FnMut(&'a Client, &'a Update, &'a mut Injector) -> F + Send + Sync + 'static,
+    F: Future<Output = O> + Send,
+    O: Into<Flow>,
 {
     async fn handle(&mut self, client: &Client, update: &Update, injector: &mut Injector) -> Flow {
         self(client, update, injector).await.into()
