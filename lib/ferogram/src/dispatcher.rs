@@ -274,7 +274,7 @@ mod tests {
         Dispatcher::default()
             .router(|router| router)
             .router(|router| {
-                router.handler(handler::then(|_: Client, _: Update| async { Ok(()) }))
+                router.register(handler::then(|_: Client, _: Update| async { Ok(()) }))
             });
     }
 }

@@ -18,11 +18,7 @@ pub struct Not {
 
 #[async_trait]
 impl Filter for Not {
-    async fn check(&mut self, client: Client, update: Update) -> Flow {
-        self.filter
-            .check(client.clone(), update.clone())
-            .await
-            .is_break()
-            .into()
+    async fn check(&mut self, client: &Client, update: &Update) -> Flow {
+        self.filter.check(client, update).await.is_break().into()
     }
 }

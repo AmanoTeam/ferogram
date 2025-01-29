@@ -45,7 +45,7 @@ impl Command {
 
 #[async_trait]
 impl Filter for Command {
-    async fn check(&mut self, client: Client, update: Update) -> Flow {
+    async fn check(&mut self, client: &Client, update: &Update) -> Flow {
         let command = self.command.clone();
         let splitted = command.split_whitespace().collect::<Vec<_>>();
 

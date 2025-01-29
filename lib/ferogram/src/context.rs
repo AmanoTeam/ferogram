@@ -849,11 +849,7 @@ impl Context {
     ) -> Result<Update, crate::Error> {
         loop {
             if let Some(update) = self.wait_for_update(timeout).await {
-                if filter
-                    .check(self.client.clone(), update.clone())
-                    .await
-                    .is_continue()
-                {
+                if filter.check(&self.client, &update).await.is_continue() {
                     return Ok(update);
                 }
             } else {

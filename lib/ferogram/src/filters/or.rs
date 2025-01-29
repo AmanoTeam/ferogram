@@ -19,8 +19,8 @@ pub struct Or {
 
 #[async_trait]
 impl Filter for Or {
-    async fn check(&mut self, client: Client, update: Update) -> Flow {
-        let first_flow = self.first.check(client.clone(), update.clone()).await;
+    async fn check(&mut self, client: &Client, update: &Update) -> Flow {
+        let first_flow = self.first.check(client, update).await;
 
         if first_flow.is_continue() {
             first_flow

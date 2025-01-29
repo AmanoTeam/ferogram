@@ -132,7 +132,7 @@ impl Handler {
     pub(crate) async fn check(&mut self, client: &Client, update: &Update) -> Flow {
         if self.update_type == *update {
             if let Some(ref mut filter) = self.filter {
-                filter.check(client.clone(), update.clone()).await
+                filter.check(client, update).await
             } else {
                 flow::continue_now()
             }

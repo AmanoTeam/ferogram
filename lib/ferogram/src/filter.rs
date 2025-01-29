@@ -21,7 +21,7 @@ use crate::Flow;
 #[async_trait]
 pub trait Filter: CloneFilter + Send + Sync + 'static {
     /// Checks if the update should be handled.
-    async fn check(&mut self, client: Client, update: Update) -> Flow;
+    async fn check(&mut self, client: &Client, update: &Update) -> Flow;
 
     /// Wrappes `self` and `second` into [`And`] filter.
     fn and<S: Filter>(self, second: S) -> And
@@ -67,12 +67,12 @@ pub trait Filter: CloneFilter + Send + Sync + 'static {
 #[async_trait]
 impl<T: Clone, F, O> Filter for T
 where
-    T: Fn(Client, Update) -> F + Send + Sync + 'static,
+    T: FnMut(Client, Update) -> F + Send + Sync + 'static,
     F: Future<Output = O> + Send + Sync + 'static,
     O: Into<Flow>,
 {
-    async fn check(&mut self, client: Client, update: Update) -> Flow {
-        self(client, update).await.into()
+    async fn check(&mut self, client: &Client, update: &Update) -> Flow {
+        self(client.clone(), update.clone()).await.into()
     }
 }
 
@@ -83,8 +83,8 @@ where
     F: Future<Output = O> + Send + Sync + 'static,
     O: Into<Flow>,
 {
-    async fn check(&mut self, client: Client, update: Update) -> Flow {
-        self(client, update).await.into()
+    async fn check(&mut self, client: &Client, update: &Update) -> Flow {
+        self(client.clone(), update.clone()).await.into()
     }
 }
 
