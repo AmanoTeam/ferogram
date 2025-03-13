@@ -121,9 +121,9 @@ impl Router {
     ) -> Result<bool> {
         let mut middlewares = middlewares.extend(self.middlewares.clone());
 
-        for handler in self.handlers.iter_mut() {
-            let mut middleware_flow = middlewares.handle_before(client, update, injector).await;
-            if middleware_flow.is_continue() {
+        let mut middleware_flow = middlewares.handle_before(client, update, injector).await;
+        if middleware_flow.is_continue() {
+            for handler in self.handlers.iter_mut() {
                 let mut flow = handler.check(client, update).await;
                 flow.injector.extend(&mut middleware_flow.injector);
 
