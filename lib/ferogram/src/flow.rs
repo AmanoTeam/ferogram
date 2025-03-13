@@ -73,7 +73,7 @@ impl Flow {
     /// # }
     /// ```
     pub fn is_break(&self) -> bool {
-        matches!(self.action, Action::Continue)
+        matches!(self.action, Action::Break)
     }
 
     /// Checks if the current action is [`Action::Continue`].
