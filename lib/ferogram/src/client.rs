@@ -11,11 +11,11 @@
 use std::path::Path;
 
 use grammers_client::{
-    grammers_tl_types as tl, session::Session, Config, InitParams, ReconnectionPolicy, SignInError,
+    Config, InitParams, ReconnectionPolicy, SignInError, grammers_tl_types as tl, session::Session,
 };
 use grammers_mtsender::ServerAddr;
 
-use crate::{di, utils::prompt, Context, Dispatcher, ErrorHandler, Result};
+use crate::{Context, Dispatcher, ErrorHandler, Result, di, utils::prompt};
 
 /// Wrapper about grammers' `Client` instance.
 pub struct Client {

@@ -16,15 +16,14 @@ use std::sync::Arc;
 pub(crate) use and::And;
 pub(crate) use command::Command;
 use grammers_client::{
-    grammers_tl_types as tl,
+    Client, Update, grammers_tl_types as tl,
     types::{Chat, Media},
-    Client, Update,
 };
 pub(crate) use not::Not;
 pub(crate) use or::Or;
 use tokio::sync::Mutex;
 
-use crate::{flow, Filter, Flow};
+use crate::{Filter, Flow, flow};
 
 /// Default prefixes for commands.
 pub const DEFAULT_PREFIXES: [&str; 2] = ["/", "!"];

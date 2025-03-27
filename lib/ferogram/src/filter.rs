@@ -14,8 +14,8 @@ use async_trait::async_trait;
 use futures_util::Future;
 use grammers_client::{Client, Update};
 
-pub use crate::filters::*;
 use crate::Flow;
+pub use crate::filters::*;
 
 /// A filter.
 #[async_trait]

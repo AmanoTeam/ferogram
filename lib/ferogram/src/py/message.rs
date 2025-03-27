@@ -11,7 +11,7 @@
 use grammers_client::types;
 use pyo3::{
     prelude::*,
-    types::{timezone_utc, PyDateTime},
+    types::{PyDateTime, timezone_utc},
 };
 
 use super::Chat;

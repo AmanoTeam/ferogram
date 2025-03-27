@@ -8,10 +8,10 @@
 
 //! Dispatcher module.
 
-use grammers_client::{types::Chat, Client, Update};
+use grammers_client::{Client, Update, types::Chat};
 use tokio::sync::broadcast::Sender;
 
-use crate::{di, filters::Command, middleware::MiddlewareStack, Context, Plugin, Result, Router};
+use crate::{Context, Plugin, Result, Router, di, filters::Command, middleware::MiddlewareStack};
 
 /// A dispatcher.
 ///

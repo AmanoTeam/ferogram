@@ -12,7 +12,7 @@ use futures_util::Future;
 use std::{
     any::{Any, TypeId},
     borrow::Borrow,
-    collections::{hash_map::Entry, HashMap, VecDeque},
+    collections::{HashMap, VecDeque, hash_map::Entry},
     marker::PhantomData,
     sync::Arc,
 };

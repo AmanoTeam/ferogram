@@ -11,7 +11,7 @@
 use async_recursion::async_recursion;
 use grammers_client::Update;
 
-use crate::{di::Injector, filter::Command, middleware::MiddlewareStack, Handler, Result};
+use crate::{Handler, Result, di::Injector, filter::Command, middleware::MiddlewareStack};
 
 /// A router.
 ///
@@ -152,7 +152,7 @@ impl Router {
                                     middlewares.handle_after(client, update, injector).await;
 
                                     Ok(true)
-                                }
+                                };
                             }
                             Err(e) => {
                                 if let Some(err_filter) = handler.err_handler.as_mut() {
@@ -198,7 +198,7 @@ mod tests {
     use grammers_client::Client;
 
     use super::*;
-    use crate::{flow, handler, Flow, Middleware};
+    use crate::{Flow, Middleware, flow, handler};
 
     #[test]
     fn router() {

@@ -8,7 +8,7 @@
 
 //! Flow module.
 
-use crate::{di::Injector, Result};
+use crate::{Result, di::Injector};
 
 /// Represents the control flow of a filter.
 #[derive(Debug, Default)]
@@ -99,11 +99,7 @@ impl From<()> for Flow {
 
 impl From<bool> for Flow {
     fn from(value: bool) -> Self {
-        if value {
-            continue_now()
-        } else {
-            break_now()
-        }
+        if value { continue_now() } else { break_now() }
     }
 }
 

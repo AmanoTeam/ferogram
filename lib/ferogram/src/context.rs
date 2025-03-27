@@ -10,20 +10,20 @@
 
 use std::{io, path::Path, pin::pin, sync::Arc, time::Duration};
 
-use futures_util::future::{select, Either};
+use futures_util::future::{Either, select};
 use grammers_client::{
-    types::{
-        media::Uploaded, ActionSender, CallbackQuery, Chat, InlineQuery, InlineSend, InputMessage,
-        Media, Message, PackedChat, Photo, User,
-    },
     InvocationError, Update,
+    types::{
+        ActionSender, CallbackQuery, Chat, InlineQuery, InlineSend, InputMessage, Media, Message,
+        PackedChat, Photo, User, media::Uploaded,
+    },
 };
 use tokio::{
     io::AsyncRead,
-    sync::{broadcast::Receiver, Mutex},
+    sync::{Mutex, broadcast::Receiver},
 };
 
-use crate::{utils::bytes_to_string, Filter};
+use crate::{Filter, utils::bytes_to_string};
 
 /// The context of an update.
 #[derive(Debug)]

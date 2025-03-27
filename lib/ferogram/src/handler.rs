@@ -10,7 +10,7 @@
 
 use grammers_client::{Client, Update};
 
-use crate::{di, filter::Command, flow, ErrorHandler, Filter, Flow};
+use crate::{ErrorHandler, Filter, Flow, di, filter::Command, flow};
 
 /// A handler.
 ///

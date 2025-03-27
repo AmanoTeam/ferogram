@@ -9,7 +9,7 @@
 use async_trait::async_trait;
 use grammers_client::{Client, Update};
 
-use crate::{flow, Filter, Flow};
+use crate::{Filter, Flow, flow};
 
 #[derive(Clone)]
 pub struct Or {
