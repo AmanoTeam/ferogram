@@ -11,7 +11,7 @@ within the ferogram ecosystem.
 homepage = "https://github.com/AmanoTeam/ferogram"
 repository = "https://github.com/AmanoTeam/ferogram"
 keywords = ["telegram", "grammers", "macros", "proc-macro"]
-edition = "2021"
+edition = "2024"
 
 [lib]
 proc-macro = true

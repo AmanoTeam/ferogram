@@ -9,7 +9,7 @@ Python bindings for ferogram.
 homepage = "https://github.com/AmanoTeam/ferogram"
 repository = "https://github.com/AmanoTeam/ferogram"
 keywords = ["telegram", "bot", "framework", "grammers", "python"]
-edition = "2021"
+edition = "2024"
 
 [lib]
 name = "ferogram_py"

@@ -9,7 +9,7 @@ Lua bindings for ferogram.
 homepage = "https://github.com/AmanoTeam/ferogram"
 repository = "https://github.com/AmanoTeam/ferogram"
 keywords = ["telegram", "bot", "framework", "grammers", "lua"]
-edition = "2021"
+edition = "2024"
 
 [lib]
 crate-type = ["cdylib"]
