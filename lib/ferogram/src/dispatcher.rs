@@ -11,7 +11,9 @@
 use grammers_client::{Client, Update, types::Chat};
 use tokio::sync::broadcast::Sender;
 
-use crate::{Context, Plugin, Result, Router, di, filters::Command, middleware::MiddlewareStack};
+use crate::{
+    Cache, Context, Plugin, Result, Router, di, filters::Command, middleware::MiddlewareStack,
+};
 
 /// A dispatcher.
 ///
@@ -172,11 +174,16 @@ impl Dispatcher {
     /// let dispatcher = dispatcher.handle_update(&client, &update).await?;
     /// # }
     /// ```
-    pub(crate) async fn handle_update(&mut self, client: &Client, update: &Update) -> Result<()> {
+    pub(crate) async fn handle_update(
+        &mut self,
+        cache: &Cache,
+        client: &Client,
+        update: &Update,
+    ) -> Result<()> {
         let mut injector = di::Injector::default();
 
         let upd_receiver = self.upd_sender.subscribe();
-        let context = Context::with(client, update, upd_receiver);
+        let context = Context::with(cache, client, update, upd_receiver);
         injector.insert(context);
 
         self.upd_sender
@@ -187,39 +194,46 @@ impl Dispatcher {
         injector.insert(update.clone());
         injector.extend(&mut self.injector.clone());
 
-        if !self.allow_from_self {
-            match update {
-                Update::NewMessage(message) | Update::MessageEdited(message) => {
-                    if let Some(Chat::User(user)) = message.sender() {
-                        if user.is_self() {
-                            return Ok(());
-                        }
-                    }
-                }
-                Update::CallbackQuery(query) => {
-                    if let Chat::User(user) = query.sender() {
-                        if user.is_self() {
-                            return Ok(());
-                        }
-                    }
-                }
-                Update::InlineQuery(query) => {
-                    let user = query.sender();
+        match update {
+            Update::NewMessage(message) | Update::MessageEdited(message) => {
+                let chat = message.chat();
+                cache.save_chat(chat.pack()).await?;
 
-                    if user.is_self() {
+                if let Some(Chat::User(user)) = message.sender() {
+                    cache.save_chat(user.pack()).await?;
+
+                    if !self.allow_from_self && user.is_self() {
                         return Ok(());
                     }
                 }
-                Update::InlineSend(inline_send) => {
-                    let user = inline_send.sender();
+            }
+            Update::CallbackQuery(query) => {
+                if let Chat::User(user) = query.sender() {
+                    cache.save_chat(user.pack()).await?;
 
-                    if user.is_self() {
+                    if !self.allow_from_self && user.is_self() {
                         return Ok(());
                     }
                 }
-                _ => {}
-            };
-        }
+            }
+            Update::InlineQuery(query) => {
+                let user = query.sender();
+                cache.save_chat(user.pack()).await?;
+
+                if !self.allow_from_self && user.is_self() {
+                    return Ok(());
+                }
+            }
+            Update::InlineSend(inline_send) => {
+                let user = inline_send.sender();
+                cache.save_chat(user.pack()).await?;
+
+                if user.is_self() {
+                    return Ok(());
+                }
+            }
+            _ => {}
+        };
 
         for router in self.routers.iter_mut() {
             match router

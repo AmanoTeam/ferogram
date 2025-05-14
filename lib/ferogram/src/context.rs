@@ -23,12 +23,14 @@ use tokio::{
     sync::{Mutex, broadcast::Receiver},
 };
 
-use crate::{Filter, utils::bytes_to_string};
+use crate::{Cache, Filter, utils::bytes_to_string};
 
 /// The context of an update.
 #[derive(Debug)]
 pub struct Context {
-    // The client that received the update.
+    /// The session cache.
+    pub cache: Cache,
+    /// The client that received the update.
     client: grammers_client::Client,
     /// The update itself.
     update: Option<Update>,
@@ -38,8 +40,13 @@ pub struct Context {
 
 impl Context {
     /// Creates a new context.
-    pub fn new(client: &grammers_client::Client, upd_receiver: Receiver<Update>) -> Self {
+    pub fn new(
+        cache: &Cache,
+        client: &grammers_client::Client,
+        upd_receiver: Receiver<Update>,
+    ) -> Self {
         Self {
+            cache: cache.clone(),
             client: client.clone(),
             update: None,
             upd_receiver: Arc::new(Mutex::new(upd_receiver)),
@@ -48,11 +55,13 @@ impl Context {
 
     /// Creates a new context with an update.
     pub fn with(
+        cache: &Cache,
         client: &grammers_client::Client,
         update: &Update,
         upd_receiver: Receiver<Update>,
     ) -> Self {
         Self {
+            cache: cache.clone(),
             client: client.clone(),
             update: Some(update.clone()),
             upd_receiver: Arc::new(Mutex::new(upd_receiver)),
@@ -77,6 +86,7 @@ impl Context {
             .expect("Failed to lock receiver");
 
         Self {
+            cache: self.cache.clone(),
             client: self.client.clone(),
             update: Some(update.clone()),
             upd_receiver: Arc::new(Mutex::new(upd_receiver.resubscribe())),
@@ -1259,6 +1269,7 @@ impl Clone for Context {
             .expect("Failed to lock receiver");
 
         Self {
+            cache: self.cache.clone(),
             client: self.client.clone(),
             update: self.update.clone(),
             upd_receiver: Arc::new(Mutex::new(upd_receiver.resubscribe())),

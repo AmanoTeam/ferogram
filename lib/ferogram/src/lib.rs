@@ -10,6 +10,7 @@
 //!
 //! The main module of the library.
 
+mod cache;
 mod client;
 mod context;
 pub(crate) mod di;
@@ -25,6 +26,7 @@ mod plugin;
 mod router;
 pub mod utils;
 
+pub(crate) use cache::Cache;
 pub use client::{Client, ClientBuilder as Builder};
 pub use context::Context;
 pub use di::Injector;

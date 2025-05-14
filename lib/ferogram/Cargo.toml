@@ -29,13 +29,14 @@ ferogram-macros = { path = "../ferogram-macros", version = "0.1.0", optional = t
 grammers-client = { git = "https://github.com/Lonami/grammers.git", version = "0.7.0" }
 grammers-mtsender = { git = "https://github.com/Lonami/grammers.git", version = "0.7.0" }
 
-log = "0.4.25"
+log = "^0.4"
 url = { version = "^2.5", optional = true }
 mlua = { version = "^0.10", features = ["async", "lua54", "module"], optional = true }
 pyo3 = { version = "^0.23", features = ["experimental-async", "macros"], optional = true }
-regex = "1.11.1"
+regex = "^1.11"
 tokio = { version = "^1.43", features = ["fs", "rt", "signal", "sync"] }
-rpassword = "7.3.1"
+bincode = { version = "^2.0" }
+rpassword = "^7.3"
 async-trait = "^0.1"
 futures-util = { version = "^0.3", default-features = false, features = ["alloc"] }
 async-recursion = "^1.1"
