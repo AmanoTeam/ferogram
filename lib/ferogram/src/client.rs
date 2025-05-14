@@ -8,14 +8,14 @@
 
 //! Client module.
 
-use std::path::Path;
+use std::{path::Path, time::Duration};
 
 use grammers_client::{
     Config, InitParams, ReconnectionPolicy, SignInError, grammers_tl_types as tl, session::Session,
 };
 use grammers_mtsender::ServerAddr;
 
-use crate::{Context, Dispatcher, ErrorHandler, Result, di, utils::prompt};
+use crate::{Cache, Context, Dispatcher, ErrorHandler, Result, di, utils::prompt};
 
 /// Wrapper about grammers' `Client` instance.
 pub struct Client {
@@ -26,6 +26,8 @@ pub struct Client {
     /// The inner grammers' `Client` instance.
     inner_client: grammers_client::Client,
 
+    /// The session cache.
+    cache: Cache,
     /// The session file path.
     session_file: Option<String>,
 
@@ -33,7 +35,7 @@ pub struct Client {
     is_connected: bool,
     /// Whether is to update Telegram's bot commands.
     set_bot_commands: bool,
-    /// Wheter is to wait for a `Ctrl + C` signal to close the connection and exit the app.
+    /// Whether is to wait for a `Ctrl + C` signal to close the connection and exit the app.
     wait_for_ctrl_c: bool,
 
     /// The global error handler.
@@ -226,7 +228,7 @@ impl Client {
     pub fn new_ctx(&self) -> Context {
         let upd_receiver = self.dispatcher.upd_sender.subscribe();
 
-        Context::new(&self.inner_client, upd_receiver)
+        Context::new(&self.cache, &self.inner_client, upd_receiver)
     }
 
     /// Listen to Telegram's updates and send them to the dispatcher's routers.
@@ -239,6 +241,7 @@ impl Client {
     /// # }
     /// ```
     pub async fn run(self) -> Result<()> {
+        let cache = self.cache.clone();
         let handle = self.inner_client;
         let dispatcher = self.dispatcher;
         let err_handler = self.err_handler;
@@ -286,12 +289,13 @@ impl Client {
             loop {
                 match handle.next_update().await {
                     Ok(update) => {
+                        let cache = cache.clone();
                         let client = handle.clone();
                         let mut dp = dispatcher.clone();
                         let err_handler = err_handler.clone();
 
                         tokio::task::spawn(async move {
-                            if let Err(e) = dp.handle_update(&client, &update).await {
+                            if let Err(e) = dp.handle_update(&cache, &client, &update).await {
                                 if let Some(err_handler) = err_handler.as_ref() {
                                     err_handler.run(client, update, e).await;
                                 } else {
@@ -308,6 +312,21 @@ impl Client {
         });
 
         if self.wait_for_ctrl_c {
+            let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
+            let cache_file = format!("{}.cc", session_file);
+
+            let cache = self.cache.clone();
+            let path = cache_file.clone();
+            tokio::task::spawn(async move {
+                loop {
+                    tokio::time::sleep(Duration::from_secs(60)).await;
+
+                    if let Err(e) = cache.save_to_file(&path).await {
+                        log::error!("failed to auto-save cache: {}", e);
+                    }
+                }
+            });
+
             tokio::signal::ctrl_c().await?;
 
             if let Some(mut handler) = self.exit_handler {
@@ -317,8 +336,8 @@ impl Client {
                 handler.handle(&mut injector).await.unwrap();
             }
 
-            let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
             client.session().save_to_file(session_file)?;
+            self.cache.save_to_file(cache_file).await?;
         }
 
         Ok(())
@@ -335,6 +354,7 @@ impl Client {
     /// ```
     pub async fn keep_alive(self) -> Result<()> {
         let handle = self.inner_client;
+        let client = handle.clone();
 
         tokio::task::spawn(async move {
             loop {
@@ -344,6 +364,12 @@ impl Client {
 
         if self.wait_for_ctrl_c {
             tokio::signal::ctrl_c().await?;
+
+            let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
+            let cache_file = &format!("{}.cc", session_file);
+
+            client.session().save_to_file(session_file)?;
+            self.cache.save_to_file(cache_file).await?;
         }
 
         Ok(())
@@ -427,6 +453,15 @@ impl ClientBuilder {
     /// ```
     pub async fn build(self) -> Result<Client> {
         let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
+        let cache_file = &format!("{}.cc", session_file);
+
+        // check if the session file don't exists and the cache file exists.
+        if !std::fs::exists(session_file)? && std::fs::exists(cache_file)? {
+            // delete the cache file if the session file changes.
+            std::fs::remove_file(cache_file)?;
+
+            log::debug!("session file changed, deleting the cache file");
+        }
 
         let inner_client = grammers_client::Client::connect(Config {
             session: Session::load_file_or_create(session_file)?,
@@ -441,6 +476,7 @@ impl ClientBuilder {
             client_type: self.client_type,
             inner_client,
 
+            cache: Cache::load_file_or_create(cache_file)?,
             session_file: Some(session_file.to_string()),
 
             is_connected: false,
