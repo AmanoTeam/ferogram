@@ -62,14 +62,6 @@ macro_rules! deps {
     };
 }
 
-/// Common types and traits.
-pub mod prelude {
-    pub use crate::{
-        filter::{and, not, or},
-        *,
-    };
-}
-
 /// [`Result`] with [`Error`].
 pub type Result<T> = std::result::Result<T, error_handler::Error>;
 
