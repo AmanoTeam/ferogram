@@ -863,7 +863,7 @@ impl Context {
                     return Ok(update);
                 }
             } else {
-                return Err(crate::Error::timeout(timeout.unwrap()));
+                return Err(crate::Error::timeout(timeout.unwrap_or(30)));
             }
         }
     }
@@ -901,7 +901,7 @@ impl Context {
                     }
                 }
             } else {
-                return Err(crate::Error::timeout(timeout.unwrap()));
+                return Err(crate::Error::timeout(timeout.unwrap_or(30)));
             }
         }
     }
@@ -929,7 +929,7 @@ impl Context {
                     return Ok(message);
                 }
             } else {
-                return Err(crate::Error::timeout(timeout.unwrap()));
+                return Err(crate::Error::timeout(timeout.unwrap_or(30)));
             }
         }
     }
@@ -960,7 +960,7 @@ impl Context {
                     return Ok(query);
                 }
             } else {
-                return Err(crate::Error::timeout(timeout.unwrap()));
+                return Err(crate::Error::timeout(timeout.unwrap_or(30)));
             }
         }
     }
@@ -991,7 +991,7 @@ impl Context {
                     return Ok(query);
                 }
             } else {
-                return Err(crate::Error::timeout(timeout.unwrap()));
+                return Err(crate::Error::timeout(timeout.unwrap_or(30)));
             }
         }
     }
@@ -1022,7 +1022,7 @@ impl Context {
                     return Ok(inline_send);
                 }
             } else {
-                return Err(crate::Error::timeout(timeout.unwrap()));
+                return Err(crate::Error::timeout(timeout.unwrap_or(30)));
             }
         }
     }
