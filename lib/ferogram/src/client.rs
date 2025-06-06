@@ -312,22 +312,22 @@ impl Client {
             }
         });
 
-        if self.wait_for_ctrl_c {
-            let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
-            let cache_file = format!("{}.cc", session_file);
+        let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
+        let cache_file = format!("{}.cc", session_file);
 
-            let cache = self.cache.clone();
-            let path = cache_file.clone();
-            tokio::task::spawn(async move {
-                loop {
-                    tokio::time::sleep(Duration::from_secs(60)).await;
+        let cache = self.cache.clone();
+        let path = cache_file.clone();
+        tokio::task::spawn(async move {
+            loop {
+                tokio::time::sleep(Duration::from_secs(60)).await;
 
-                    if let Err(e) = cache.save_to_file(&path).await {
-                        log::error!("failed to auto-save cache: {}", e);
-                    }
+                if let Err(e) = cache.save_to_file(&path).await {
+                    log::error!("failed to auto-save cache: {}", e);
                 }
-            });
+            }
+        });
 
+        if self.wait_for_ctrl_c {
             tokio::signal::ctrl_c().await?;
 
             if let Some(mut handler) = self.exit_handler {
@@ -365,13 +365,13 @@ impl Client {
 
         if self.wait_for_ctrl_c {
             tokio::signal::ctrl_c().await?;
-
-            let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
-            let cache_file = &format!("{}.cc", session_file);
-
-            client.session().save_to_file(session_file)?;
-            self.cache.save_to_file(cache_file).await?;
         }
+
+        let session_file = self.session_file.as_deref().unwrap_or("./ferogram.session");
+        let cache_file = &format!("{}.cc", session_file);
+
+        client.session().save_to_file(session_file)?;
+        self.cache.save_to_file(cache_file).await?;
 
         Ok(())
     }
