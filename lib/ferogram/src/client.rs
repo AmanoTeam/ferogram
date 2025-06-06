@@ -18,6 +18,7 @@ use grammers_mtsender::ServerAddr;
 use crate::{Cache, Context, Dispatcher, ErrorHandler, Result, di, utils::prompt};
 
 /// Wrapper about grammers' `Client` instance.
+#[derive(Clone)]
 pub struct Client {
     /// The dispatcher.
     dispatcher: Dispatcher,
