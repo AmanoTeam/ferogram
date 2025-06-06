@@ -388,7 +388,7 @@ pub async fn has_animated_sticker(_: Client, update: Update) -> Flow {
 /// Pass if the update is a new chat member.
 pub async fn new_chat_member(_: Client, update: Update) -> bool {
     if let Update::Raw(raw_update) = update {
-        return matches!(raw_update, tl::enums::Update::ChatParticipantAdd(_));
+        return matches!(raw_update.raw, tl::enums::Update::ChatParticipantAdd(_));
     }
 
     false
@@ -397,7 +397,7 @@ pub async fn new_chat_member(_: Client, update: Update) -> bool {
 /// Pass if the update is a left chat member.
 pub async fn left_chat_member(_: Client, update: Update) -> bool {
     if let Update::Raw(raw_update) = update {
-        return matches!(raw_update, tl::enums::Update::ChatParticipantDelete(_));
+        return matches!(raw_update.raw, tl::enums::Update::ChatParticipantDelete(_));
     }
 
     false
@@ -407,7 +407,7 @@ pub async fn left_chat_member(_: Client, update: Update) -> bool {
 pub async fn typing(_: Client, update: Update) -> bool {
     if let Update::Raw(raw_update) = update {
         return matches!(
-            raw_update,
+            raw_update.raw,
             tl::enums::Update::UserTyping(_) | tl::enums::Update::ChatUserTyping(_)
         );
     }

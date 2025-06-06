@@ -8,14 +8,15 @@
 
 //! Context module.
 
-use std::{io, path::Path, pin::pin, sync::Arc, time::Duration};
+use std::{io, ops::Deref, path::Path, pin::pin, sync::Arc, time::Duration};
 
 use futures_util::future::{Either, select};
 use grammers_client::{
     InvocationError, Update,
     types::{
-        ActionSender, CallbackQuery, Chat, InlineQuery, InlineSend, InputMessage, Media, Message,
-        PackedChat, Photo, User, media::Uploaded,
+        self, ActionSender, Chat, InputMessage, Media, PackedChat, Photo, User,
+        media::Uploaded,
+        update::{CallbackQuery, InlineQuery, InlineSend, Message},
     },
 };
 use tokio::{
@@ -221,9 +222,11 @@ impl Context {
     /// let message = ctx.message().await;
     /// # }
     /// ```
-    pub async fn message(&self) -> Option<Message> {
+    pub async fn message(&self) -> Option<types::Message> {
         match self.update.as_ref().expect("No update") {
-            Update::NewMessage(message) | Update::MessageEdited(message) => Some(message.clone()),
+            Update::NewMessage(message) | Update::MessageEdited(message) => {
+                Some(message.deref().clone())
+            }
             Update::CallbackQuery(query) => {
                 let message = query.load_message().await.expect("Failed to load message");
 
@@ -339,7 +342,7 @@ impl Context {
     pub async fn send<M: Into<InputMessage>>(
         &self,
         message: M,
-    ) -> Result<Message, InvocationError> {
+    ) -> Result<types::Message, InvocationError> {
         if let Some(msg) = self.message().await {
             msg.respond(message).await
         } else {
@@ -375,7 +378,7 @@ impl Context {
     pub async fn reply<M: Into<InputMessage>>(
         &self,
         message: M,
-    ) -> Result<Message, InvocationError> {
+    ) -> Result<types::Message, InvocationError> {
         if let Some(msg) = self.message().await {
             msg.reply(message).await
         } else {
@@ -449,7 +452,7 @@ impl Context {
     /// # Errors
     ///
     /// Returns an error if the reply message could not be retrieved.
-    pub async fn get_reply(&self) -> Result<Option<Message>, InvocationError> {
+    pub async fn get_reply(&self) -> Result<Option<types::Message>, InvocationError> {
         if let Some(msg) = self.message().await {
             msg.get_reply().await
         } else {
@@ -477,7 +480,7 @@ impl Context {
     pub async fn forward_to<C: Into<PackedChat>>(
         &self,
         chat: C,
-    ) -> Result<Message, InvocationError> {
+    ) -> Result<types::Message, InvocationError> {
         if let Some(msg) = self.message().await {
             msg.forward_to(chat).await
         } else {
@@ -547,7 +550,7 @@ impl Context {
     /// # Errors
     ///
     /// Returns an error if the message could not be forwarded.
-    pub async fn forward_to_self(&self) -> Result<Message, InvocationError> {
+    pub async fn forward_to_self(&self) -> Result<types::Message, InvocationError> {
         if let Some(msg) = self.message().await {
             let chat = self.client().get_me().await?;
 
@@ -578,7 +581,7 @@ impl Context {
     pub async fn edit_or_reply<M: Into<InputMessage>>(
         &self,
         message: M,
-    ) -> Result<Message, InvocationError> {
+    ) -> Result<types::Message, InvocationError> {
         if let Some(msg) = self.message().await {
             if let Some(query) = self.callback_query() {
                 query.answer().edit(message).await?;
@@ -660,7 +663,10 @@ impl Context {
     /// # Errors
     ///
     /// Returns an error if the message could not be retrieved.
-    pub async fn get_message(&self, message_id: i32) -> Result<Option<Message>, InvocationError> {
+    pub async fn get_message(
+        &self,
+        message_id: i32,
+    ) -> Result<Option<types::Message>, InvocationError> {
         self.get_messages(vec![message_id])
             .await
             .map(|mut v| v.pop().unwrap_or_default())
@@ -687,7 +693,7 @@ impl Context {
     pub async fn get_messages(
         &self,
         message_ids: Vec<i32>,
-    ) -> Result<Vec<Option<Message>>, InvocationError> {
+    ) -> Result<Vec<Option<types::Message>>, InvocationError> {
         self.client
             .get_messages_by_id(self.chat().expect("No chat"), &message_ids)
             .await
@@ -741,7 +747,7 @@ impl Context {
         &self,
         user: &User,
         limit: Option<usize>,
-    ) -> Result<Vec<Message>, InvocationError> {
+    ) -> Result<Vec<types::Message>, InvocationError> {
         let mut iter = self
             .client
             .iter_messages(self.chat().expect("No chat"))
@@ -780,7 +786,7 @@ impl Context {
     pub async fn get_messages_from_self(
         &self,
         limit: Option<usize>,
-    ) -> Result<Vec<Message>, InvocationError> {
+    ) -> Result<Vec<types::Message>, InvocationError> {
         let mut iter = self
             .client
             .iter_messages(self.chat().expect("No chat"))
