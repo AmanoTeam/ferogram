@@ -1,0 +1,13 @@
+[package]
+name = "ferogram-macros"
+
+authors.workspace = true
+version.workspace = true
+license.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+edition.workspace = true
+
+[dependencies]
