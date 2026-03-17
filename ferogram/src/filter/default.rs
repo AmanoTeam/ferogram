@@ -129,7 +129,7 @@ pub fn has_url(_: Client, update: Update) -> Flow {
 /// Pass if the message has a dice attached to it.
 ///
 /// Injects:
-/// * [`grammers::message::Dice`]: dice.
+/// * [`grammers::message::Dice`][]: dice.
 pub fn has_dice(_: Client, update: Update) -> Flow {
     match update {
         Update::NewMessage(message) | Update::MessageEdited(message) => {
