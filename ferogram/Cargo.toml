@@ -1,0 +1,46 @@
+[package]
+name = "ferogram"
+description = "A set of friendly libraries to make your deal with Telegram API through grammers easier."
+
+authors.workspace = true
+version.workspace = true
+license.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords.workspace = true
+edition.workspace = true
+
+[lib]
+doctest = false
+
+[features]
+default = ["url"]
+
+url = ["dep:url"]
+macros = ["dep:ferogram-macros"]
+
+[dependencies]
+ferogram-macros = { path = "../ferogram-macros", optional = true }
+
+# Telegram
+grammers.workspace = true
+grammers-session.workspace = true
+
+url = { version = "2.5", optional = true }
+regex = "1.12"
+dashmap = "6.1"
+rpassword = "7.4"
+
+libsql.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+
+# Futures
+tokio.workspace = true
+async-trait.workspace = true
+futures-core.workspace = true
+async-recursion.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros"] }
