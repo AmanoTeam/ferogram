@@ -38,7 +38,6 @@ thiserror.workspace = true
 
 # Futures
 tokio.workspace = true
-async-trait.workspace = true
 futures-core.workspace = true
 async-recursion.workspace = true
 
