@@ -12,7 +12,7 @@
 use std::error::Error;
 
 use ferogram::{Dispatcher, filter, handler, prelude::ConnectionExt};
-use grammers::{Client, client::UpdatesConfiguration, update::Update};
+use grammers::{Client, client::UpdatesConfiguration, update::Message};
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -24,10 +24,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Build and run the dispatcher.
     Dispatcher::builder()
         .add_handler(
-            handler::new_message(filter::text("hi")).then(|update: Update| async {
-                if let Update::NewMessage(message) = update {
-                    message.reply(message.text()).await?;
-                }
+            handler::new_message(filter::text("hi")).then(|message: Message| async move {
+                message.reply(message.text()).await?;
 
                 Ok(())
             }),
