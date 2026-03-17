@@ -9,7 +9,7 @@ use grammers::{Client, update::Update};
 use super::{AsyncMarker, Filter, Flow, IntoFilter};
 
 /// `And` filter, which contains two filters and only allows the execution of
-/// the [`crate::Endpoint`] if both pass.
+/// the [`crate::di::Endpoint`] if both pass.
 pub struct AndFilter {
     pub(crate) first: Box<dyn Filter>,
     pub(crate) second: Box<dyn Filter>,

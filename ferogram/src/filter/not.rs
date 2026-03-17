@@ -9,7 +9,7 @@ use grammers::{Client, update::Update};
 use super::{AsyncMarker, Filter, Flow, IntoFilter};
 
 /// `Not` filter, which contains one filter and allows the execution of the
-/// [`crate::Endpoint`] if it don't pass.
+/// [`crate::di::Endpoint`] if it don't pass.
 pub struct NotFilter {
     pub(crate) filter: Box<dyn Filter>,
 }

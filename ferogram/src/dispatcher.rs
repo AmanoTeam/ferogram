@@ -140,7 +140,7 @@ impl Dispatcher {
                                     Ok(false) => continue,
                                     Ok(true) => return,
                                     Err(e) => {
-                                        tracing::error!("An error ocurrend while executing a handler: {e}")
+                                        tracing::error!("An error ocurred while executing a handler: {e}")
                                     }
                                 }
                             }

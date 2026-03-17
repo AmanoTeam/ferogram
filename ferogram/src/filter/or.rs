@@ -9,7 +9,7 @@ use grammers::{Client, update::Update};
 use super::{AsyncMarker, Filter, Flow, IntoFilter};
 
 /// `Or` filter, which contains two filters and allows the execution of the
-/// [`crate::Endpoint`] if any of them pass.
+/// [`crate::di::Endpoint`] if any of them pass.
 pub struct OrFilter {
     pub(crate) first: Box<dyn Filter>,
     pub(crate) other: Box<dyn Filter>,

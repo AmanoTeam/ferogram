@@ -87,7 +87,7 @@ impl Context {
         }
     }
 
-    /// Get the media attached in the message held by the update.
+    /// Get the media attached to the message held by the update.
     ///
     /// If the update is a [`CallbackQuery`], it will load the message first.
     pub async fn media(&self) -> Option<Media> {
@@ -105,7 +105,7 @@ impl Context {
         }
     }
 
-    /// Get the photo attached in the message held by the update.
+    /// Get the photo attached to the message held by the update.
     ///
     /// If the update is a [`CallbackQuery`], it will load the message first.
     pub async fn photo(&self) -> Option<Photo> {
@@ -319,20 +319,7 @@ impl Context {
     pub async fn forward_to_self(&self) -> Result<Message, InvocationError> {
         let chat = self.client.get_me().await?.to_ref().await.unwrap();
 
-        match &self.update {
-            Update::NewMessage(message) | Update::MessageEdited(message) => {
-                message.forward_to(chat).await
-            }
-            Update::CallbackQuery(query) => {
-                let message = query
-                    .load_message()
-                    .await
-                    .expect("Failed to load CallbackQuery's message");
-
-                message.forward_to(chat).await
-            }
-            _ => panic!("This update doesn't contain a message"),
-        }
+        self.forward_to(chat).await
     }
 
     /// Edit or reply to the message held by the update.

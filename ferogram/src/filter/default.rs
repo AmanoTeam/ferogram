@@ -36,7 +36,7 @@ pub fn and<M1, M2>(
 }
 
 /// Pass if `filter` don't pass.
-pub fn not<M1>(filter: impl IntoFilter<M1>) -> impl IntoFilter<AsyncMarker> {
+pub fn not<Marker>(filter: impl IntoFilter<Marker>) -> impl IntoFilter<AsyncMarker> {
     filter.not()
 }
 
