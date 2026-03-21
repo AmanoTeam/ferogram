@@ -18,7 +18,12 @@ use tokio::{
 
 use crate::{Context, Handler, Injector, wait_for_ctrl_c};
 
+/// A notification sent to stop the dispatcher.
 pub(super) static STOP_DISPATCHER: LazyLock<Arc<Notify>> =
+    LazyLock::new(|| Arc::new(Notify::new()));
+
+/// A notification sent when the dispatcher is fully stopped.
+pub(super) static DISPATCHER_STOPPED: LazyLock<Arc<Notify>> =
     LazyLock::new(|| Arc::new(Notify::new()));
 
 /// A update dispatcher.
@@ -158,6 +163,8 @@ impl Dispatcher {
 
             tracing::info!("Waiting for any slow handlers to finish...");
             while handler_tasks.try_join_next().is_some() {}
+
+            DISPATCHER_STOPPED.notify_waiters();
         })
     }
 }

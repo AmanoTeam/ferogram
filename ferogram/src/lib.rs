@@ -14,14 +14,12 @@ pub mod filter;
 pub mod handler;
 mod utils;
 
-use std::{error::Error, time::Duration};
-
-use tokio::time::sleep;
+use std::error::Error;
 
 pub use context::Context;
 pub use di::{Injector, Resource};
 pub use dispatcher::Dispatcher;
-use dispatcher::STOP_DISPATCHER;
+use dispatcher::{DISPATCHER_STOPPED, STOP_DISPATCHER};
 pub use handler::Handler;
 
 pub mod prelude {
@@ -41,15 +39,16 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 pub async fn wait_for_ctrl_c() {
     tokio::signal::ctrl_c()
         .await
-        .expect("Failed to listen for Ctrl+C signal");
-
-    STOP_DISPATCHER.notify_waiters();
-
-    // Sleep to let the dispatcher catch all its tasks.
-    sleep(Duration::from_secs(2)).await;
+        .expect("Failed to listen for Ctrl+C signal")
 }
 
-/// Same as [`wait_for_ctrl_c`].
+/// Keep the process alive until a `Ctrl-C` signal is received.
+///
+/// Unlike [`self::wait_for_ctrl_c`], it waits for all handler tasks spawned by
+/// the dispatcher to finish.
 pub async fn idle() {
-    wait_for_ctrl_c().await
+    wait_for_ctrl_c().await;
+
+    STOP_DISPATCHER.notify_waiters();
+    DISPATCHER_STOPPED.notified().await;
 }
