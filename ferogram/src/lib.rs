@@ -42,13 +42,26 @@ pub async fn wait_for_ctrl_c() {
         .expect("Failed to listen for Ctrl+C signal")
 }
 
-/// Keep the process alive until a `Ctrl-C` signal is received.
+/// Keep the process alive until a `Ctrl-C` signal is received, or until the
+/// dispatcher stops.
 ///
-/// Unlike [`self::wait_for_ctrl_c`], it waits for all handler tasks spawned by
-/// the dispatcher to finish.
+/// Upon receiving a `Ctrl-C` signal, it signals the dispatcher to begina graceful
+/// shutdown. Unlike [`self::wait_for_ctrl_c`], it waits for the dispatcher to
+/// successfully save the session and for all spawned handler tasks to finish.
+///
+/// Note: If the background dispatcher encounters a fatal panic or exits unexpectedly,
+/// it will return immediately to prevent the application from hanging.
 pub async fn idle() {
-    wait_for_ctrl_c().await;
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {
+            tracing::info!("Ctrl-C received. Instructing dispatcher to stop...");
+            STOP_DISPATCHER.notify_one();
 
-    STOP_DISPATCHER.notify_waiters();
-    DISPATCHER_STOPPED.notified().await;
+            DISPATCHER_STOPPED.notified().await;
+            tracing::info!("Application stopped successfully.");
+        }
+        _ = DISPATCHER_STOPPED.notified() => {
+            tracing::error!("Idle aborted: The dispatcher stopped unexpectedly.");
+        }
+    }
 }

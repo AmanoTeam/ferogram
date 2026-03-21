@@ -81,6 +81,10 @@ impl Dispatcher {
         tracing::info!("The pool is ready to receive updates!");
 
         tokio::task::spawn(async move {
+            // If the dispatcher panics anywhere below this line, the guard is dropped
+            // during stack unwinding, which signals DISPATCHER_STOPPED.
+            let _guard = DispatcherExitGuard;
+
             let mut handler_tasks = JoinSet::new();
             let mut updates = client.stream_updates(updates, configuration).await;
 
@@ -88,68 +92,83 @@ impl Dispatcher {
                 tokio::select! {
                     _ = STOP_DISPATCHER.notified() => break,
                     update = updates.next() => {
-                        let update = update.unwrap();
+                        match update {
+                            Ok(update) => {
+                                let dp = Arc::clone(&this);
+                                let client = client.clone();
 
-                        let dp = Arc::clone(&this);
-                        let client = client.clone();
+                                let mut injector = Injector::default();
+                                injector.push(client.clone());
+                                injector.push(update.clone());
 
-                        let mut injector = Injector::default();
-                        injector.push(client.clone());
-                        injector.push(update.clone());
+                                let update_rx = dp.update_tx.subscribe();
+                                let context = Context::new(client.clone(), update.clone(), update_rx);
+                                injector.push(context);
 
-                        let update_rx = dp.update_tx.subscribe();
-                        let context = Context::new(client.clone(), update.clone(), update_rx);
-                        injector.push(context);
-
-                        dp.update_tx.send(update.clone()).expect("Failed to send update to open contexts");
-
-                        handler_tasks.spawn(async move {
-                            if !dp.allow_from_self {
-                                match update {
-                                    Update::NewMessage(ref message)
-                                    | Update::MessageEdited(ref message) => {
-                                        if let Some(Peer::User(user)) = message.peer()
-                                            && user.is_self()
-                                        {
-                                            return;
-                                        }
-                                    }
-                                    Update::CallbackQuery(ref query) => {
-                                        if let Some(Peer::User(user)) = query.sender()
-                                            && user.is_self()
-                                        {
-                                            return;
-                                        }
-                                    }
-                                    Update::InlineQuery(ref query) => {
-                                        if let Some(user) = query.sender()
-                                            && user.is_self()
-                                        {
-                                            return;
-                                        }
-                                    }
-                                    Update::InlineSend(ref query) => {
-                                        if let Some(user) = query.sender()
-                                            && user.is_self()
-                                        {
-                                            return;
-                                        }
-                                    }
-                                    _ => {}
+                                if let Err(e) = dp.update_tx.send(update.clone()) {
+                                    tracing::warn!("No active subscribers for update channel: {e}");
                                 }
-                            }
 
-                            let mut handlers = dp.handlers.lock().await;
-                            for handler in handlers.iter_mut() {
-                                match handler.run(&client, &update, injector.clone()).await {
-                                    Ok(false) => continue,
-                                    Ok(true) => return,
-                                    Err(e) => {
-                                        tracing::error!("An error ocurred while executing a handler: {e}")
+                                handler_tasks.spawn(async move {
+                                    if !dp.allow_from_self {
+                                        match update {
+                                            Update::NewMessage(ref message)
+                                            | Update::MessageEdited(ref message) => {
+                                                if let Some(Peer::User(user)) = message.peer()
+                                                    && user.is_self()
+                                                {
+                                                    return;
+                                                }
+                                            }
+                                            Update::CallbackQuery(ref query) => {
+                                                if let Some(Peer::User(user)) = query.sender()
+                                                    && user.is_self()
+                                                {
+                                                    return;
+                                                }
+                                            }
+                                            Update::InlineQuery(ref query) => {
+                                                if let Some(user) = query.sender()
+                                                    && user.is_self()
+                                                {
+                                                    return;
+                                                }
+                                            }
+                                            Update::InlineSend(ref query) => {
+                                                if let Some(user) = query.sender()
+                                                    && user.is_self()
+                                                {
+                                                    return;
+                                                }
+                                            }
+                                            _ => {}
+                                        }
                                     }
-                                }
+
+                                    let mut handlers = dp.handlers.lock().await;
+                                    for handler in handlers.iter_mut() {
+                                        match handler.run(&client, &update, injector.clone()).await {
+                                            Ok(false) => continue,
+                                            Ok(true) => return,
+                                            Err(e) => {
+                                                tracing::error!("An error ocurred while executing a handler: {e}")
+                                            }
+                                        }
+                                    }
+                                });
                             }
-                        });
+                            Err(e) => {
+                                tracing::error!("Failed to process update: {e}");
+                            }
+                        }
+
+                    }
+                    Some(result) = handler_tasks.join_next() => {
+                        if let Err(e) = result
+                            && e.is_panic() {
+                                tracing::error!("A handler task panicked! Exiting...");
+                                break;
+                        }
                     }
                 }
             }
@@ -162,9 +181,7 @@ impl Dispatcher {
             let _ = pool_task.await;
 
             tracing::info!("Waiting for any slow handlers to finish...");
-            while handler_tasks.try_join_next().is_some() {}
-
-            DISPATCHER_STOPPED.notify_waiters();
+            while handler_tasks.join_next().await.is_some() {}
         })
     }
 }
@@ -205,6 +222,29 @@ impl DispatcherBuilder {
     pub fn allow_from_self(mut self) -> Self {
         self.allow_from_self = true;
         self
+    }
+}
+
+/// A RAII drop guard that guarantees the [`crate::idle`] is notified whenever
+/// the dispatcher task exits, regardless of how it happens.
+///
+/// By instantiating this at the very top of the dispatcher task, we ensure
+/// that `DISPATCHER_STOPPED.notify_one()` is called under all circumstances:
+/// 1. **Clean Exit:** The task finishes successfully and drops the guard at the end of the scope.
+/// 2. **Early Return:** The task encounters a `return` or `break` and drops the guard.
+/// 3. **Dispatcher Panic:** The task encounters a fatal panic. Rust's stack unwinding
+///    mechanism will automatically call `drop()` on this guard before destroying the task.
+///
+/// Without this guard, a panicking dispatcher would silently die in the background,
+/// causing the `idle()` loop to hang forever waiting for a shutdown signal that will never arrive.
+struct DispatcherExitGuard;
+
+impl Drop for DispatcherExitGuard {
+    fn drop(&mut self) {
+        // Why `notify_one` instead of `notify_waiters`?
+        // If the dispatcher crashes before the user calls `crate::idle`, `notify_one`
+        // stores a permit in memory so `crate::idle` will immediately see it when called.
+        DISPATCHER_STOPPED.notify_one();
     }
 }
 
