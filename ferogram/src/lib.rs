@@ -7,17 +7,18 @@
 
 pub mod client;
 mod context;
-mod di;
+pub mod di;
 mod dispatcher;
 pub mod error;
 pub mod filter;
 pub mod handler;
+pub mod router;
 mod utils;
 
 use std::error::Error;
 
 pub use context::Context;
-pub use di::{Injector, Resource};
+use di::Injector;
 pub use dispatcher::Dispatcher;
 use dispatcher::{DISPATCHER_STOPPED, STOP_DISPATCHER};
 pub use handler::Handler;
@@ -27,8 +28,10 @@ pub mod prelude {
     pub use grammers_session as session;
 
     pub use super::{
-        client::*,
-        filter::{AsyncMarker, Filter, IntoFilter, SyncMarker},
+        client::ConnectionExt,
+        di::Resource,
+        filter::{self, AsyncMarker, Filter, FilterExt, IntoFilter, SyncMarker},
+        router::CommandParams,
         *,
     };
 }

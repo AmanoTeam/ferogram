@@ -10,4 +10,9 @@ repository.workspace = true
 keywords.workspace = true
 edition.workspace = true
 
+[lib]
+proc-macro = true
+
 [dependencies]
+syn = "2.0"
+quote = "1.0"

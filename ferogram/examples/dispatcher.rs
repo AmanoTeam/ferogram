@@ -11,8 +11,8 @@
 
 use std::error::Error;
 
-use ferogram::{Dispatcher, filter, handler, prelude::ConnectionExt};
-use grammers::{Client, client::UpdatesConfiguration, update::Message};
+use ferogram::prelude::*;
+use grammers::{Client, client::UpdatesConfiguration, message::InputMessage, update::Message};
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -23,13 +23,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Build and run the dispatcher.
     Dispatcher::builder()
-        .add_handler(
-            handler::new_message(filter::text("hi")).then(|message: Message| async move {
-                message.reply(message.text()).await?;
+        .add_handler(handler::new_message(filter::command("/start :id")).then(
+            |message: Message, params: CommandParams| async move {
+                let Ok(id) = params.get_parsed::<i64>("id") else {
+                    let id = params.get("id").unwrap();
+
+                    message
+                        .reply(InputMessage::new().text(format!("Invalid id: {id}")))
+                        .await?;
+                    return Ok(());
+                };
+
+                message
+                    .reply(InputMessage::new().text(id.to_string()))
+                    .await?;
 
                 Ok(())
-            }),
-        )
+            },
+        ))
         .build()
         .run(
             pool,
