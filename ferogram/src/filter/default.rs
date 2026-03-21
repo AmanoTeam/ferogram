@@ -72,7 +72,7 @@ pub fn regex(pattern: &'static str) -> impl IntoFilter<SyncMarker> {
     }
 }
 
-/// Pass if the message text matches the specified command pattern.
+/// Pass if the message text or query data matches the specified command pattern.
 ///
 /// It supports parameters, which are:
 /// - `:param`: a one-word required parameter.
@@ -180,13 +180,15 @@ pub fn command(pattern: &'static str) -> impl IntoFilter<SyncMarker> {
     move |_, update| match update {
         Update::NewMessage(message) => {
             let text = message.text();
-
             extract_params(text, &re)
         }
         Update::CallbackQuery(query) => {
             let data = String::from_utf8_lossy(query.data()).to_string();
-
             extract_params(&data, &re)
+        }
+        Update::InlineQuery(query) => {
+            let text = query.text();
+            extract_params(text, &re)
         }
         _ => super::stop(),
     }
