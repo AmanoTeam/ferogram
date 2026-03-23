@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         // You can try it by sending:
         // * `/start 123`: returns id
         // * `/start hi`: returns invalid id message
-        .add_handler(handler::new_message(filter::command("/start :id")).then(
+        .add_handler(handler::new_message(command("/start :id")).then(
             |message: Message, params: CommandParams| async move {
                 let Ok(id) = params.get_parsed::<i64>("id") else {
                     let id = params.get("id").unwrap();

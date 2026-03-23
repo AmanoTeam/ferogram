@@ -8,7 +8,6 @@
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use serde::Serialize;
 use syn::{Expr, ItemFn};
 
 /// Build a new handler.
@@ -88,7 +87,7 @@ fn transform_filter(expr: &Expr) -> TokenStream2 {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub enum UpdateType {
     NewMessage,
     MessageEdited,
