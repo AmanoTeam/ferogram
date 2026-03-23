@@ -18,7 +18,7 @@ use grammers::{Client, client::UpdatesConfiguration, message::InputMessage, upda
 /// * `/start 123 hi`: returns id
 /// * `/start hi 123`: returns invalid id message
 #[handler::new_message(command("/start :id") && text("hi"))]
-async fn start(message: Message, params: CommandParams) -> handler::Result {
+async fn start(message: Message, params: CommandParams) {
     let Ok(id) = params.get_parsed::<i64>("id") else {
         let id = params.get("id").unwrap();
 
