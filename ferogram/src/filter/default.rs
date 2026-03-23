@@ -219,7 +219,13 @@ pub fn has_url(_: Client, update: Update) -> Flow {
                         .skip(entity.offset() as usize)
                         .take(entity.length() as usize)
                         .collect::<String>();
-                    urls.push(url);
+                    let url = url
+                        .strip_suffix('/')
+                        .map_or_else(|| url.clone(), ToString::to_string);
+
+                    if !urls.contains(&url) {
+                        urls.push(url);
+                    }
                 }
             }
 
@@ -230,6 +236,9 @@ pub fn has_url(_: Client, update: Update) -> Flow {
                 for part in text.split_whitespace() {
                     if let Ok(url) = Url::parse(part) {
                         let url = url.to_string();
+                        let url = url
+                            .strip_suffix('/')
+                            .map_or_else(|| url.clone(), ToString::to_string);
 
                         if !urls.contains(&url) {
                             urls.push(url);

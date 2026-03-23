@@ -6,7 +6,7 @@
 //! Filters traits and functions intended to be used in [`crate::Handler`]s
 
 mod and;
-mod default;
+pub(crate) mod default;
 mod markers;
 mod not;
 mod or;

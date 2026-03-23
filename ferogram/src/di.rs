@@ -116,7 +116,7 @@ impl Resource {
 
 pub trait RequestHandler: Send + Sync + 'static {
     /// Handle the request.
-    fn handle(&mut self, injector: Injector) -> BoxFuture<'_, crate::Result<()>>;
+    fn handle(&mut self, injector: Injector) -> BoxFuture<'_, crate::handler::Result>;
 }
 
 macro_rules! impl_request_handler {
@@ -124,14 +124,14 @@ macro_rules! impl_request_handler {
         impl<Fut, Output, $($param),*> RequestHandler for RequestHandlerFunc<($($param,)*), Fut>
         where
             Fut: FnMut($($param),*) -> Output + Send + Sync + 'static,
-            Output: Future<Output = crate::Result<()>> + Send,
+            Output: Future<Output = crate::handler::Result> + Send,
             $($param: Clone + Send + Sync + 'static,)*
         {
             #[inline]
             #[allow(unused_mut)]
             #[allow(non_snake_case)]
             #[allow(unused_variables)]
-            fn handle(&mut self, mut injector: Injector) -> BoxFuture<'_, crate::Result<()>> {
+            fn handle(&mut self, mut injector: Injector) -> BoxFuture<'_, crate::handler::Result> {
                 $(
                     let $param = Borrow::<$param>::borrow(match injector.take() {
                         Some(ref value) => value,

@@ -20,9 +20,14 @@ impl Filter for NotFilter {
         let update = update.clone();
 
         Box::pin(async move {
-            let flow = self.filter.run(&client, &update).await;
+            let mut flow = self.filter.run(&client, &update).await;
 
-            if flow.is_stop() { flow } else { super::stop() }
+            if flow.is_stop() {
+                flow.to_proceed();
+                flow
+            } else {
+                super::stop()
+            }
         })
     }
 }

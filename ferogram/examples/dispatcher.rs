@@ -6,7 +6,7 @@
 //!
 //! Run it as:
 //! ```sh
-//! API_ID=... API_HASH="..." BOT_TOKEN="..." PHONE_NUMBER="..." cargo run --example from-env
+//! API_ID=... API_HASH="..." BOT_TOKEN="..." PHONE_NUMBER="..." cargo run --example dispatcher
 //! ```
 
 use std::error::Error;
@@ -23,6 +23,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Build and run the dispatcher.
     Dispatcher::builder()
+        // You can try it by sending:
+        // * `/start 123`: returns id
+        // * `/start hi`: returns invalid id message
         .add_handler(handler::new_message(filter::command("/start :id")).then(
             |message: Message, params: CommandParams| async move {
                 let Ok(id) = params.get_parsed::<i64>("id") else {

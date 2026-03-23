@@ -23,6 +23,12 @@ pub use dispatcher::Dispatcher;
 use dispatcher::{DISPATCHER_STOPPED, STOP_DISPATCHER};
 pub use handler::Handler;
 
+/// It reexports useful and necessary traits and utilities.
+///
+/// It also reexports some [`grammes`] libraries as:
+/// * `tl`: [`grammers-tl-types`]
+/// * `grammers`: [`grammers-client`].
+/// * `session`: [`grammers-session`]
 pub mod prelude {
     pub use grammers::{self, tl};
     pub use grammers_session as session;
@@ -30,7 +36,7 @@ pub mod prelude {
     pub use super::{
         client::ConnectionExt,
         di::Resource,
-        filter::{self, AsyncMarker, Filter, FilterExt, IntoFilter, SyncMarker},
+        filter::{self, AsyncMarker, Filter, FilterExt, IntoFilter, SyncMarker, default::*},
         router::CommandParams,
         *,
     };

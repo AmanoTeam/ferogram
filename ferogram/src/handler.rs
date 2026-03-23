@@ -7,11 +7,16 @@
 
 use grammers::{Client, update::Update};
 
+#[cfg(feature = "macros")]
+pub use ferogram_macros::*;
+
 use crate::{
-    Result,
     di::{self, Endpoint, Injector},
     filter::{Filter, IntoFilter},
 };
+
+/// Result type expected to be returned by an [`Endpoint`].
+pub type Result = crate::Result<()>;
 
 /// A route that stores a single or nested [`Filter`] and an [`Endpoint`].
 pub struct Handler {
@@ -109,7 +114,7 @@ impl Handler {
         client: &Client,
         update: &Update,
         mut injector: Injector,
-    ) -> Result<bool> {
+    ) -> crate::Result<bool> {
         if self.r#type == *update {
             if let Some(ref mut filter) = self.filter {
                 let flow = filter.run(client, update).await;
@@ -155,7 +160,7 @@ impl Handler {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-enum UpdateType {
+pub enum UpdateType {
     NewMessage,
     MessageEdited,
     MessageDeleted,
@@ -164,6 +169,20 @@ enum UpdateType {
     InlineSend,
     #[default]
     Raw,
+}
+
+impl From<String> for UpdateType {
+    fn from(value: String) -> Self {
+        match value.to_lowercase().as_str() {
+            "new_message" => Self::NewMessage,
+            "message_edited" => Self::MessageEdited,
+            "message_deleted" => Self::MessageDeleted,
+            "callback_query" => Self::CallbackQuery,
+            "inline_query" => Self::InlineQuery,
+            "inline_send" => Self::InlineSend,
+            _ => Self::default(),
+        }
+    }
 }
 
 impl PartialEq<Update> for UpdateType {
