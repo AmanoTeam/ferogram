@@ -43,3 +43,16 @@ async-recursion.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros"] }
+
+[[example]]
+name = "from-env"
+path = "examples/from-env.rs"
+
+[[example]]
+name = "dispatcher"
+path = "examples/dispatcher.rs"
+
+[[example]]
+name = "dispatcher-with-macros"
+path = "examples/dispatcher-with-macros.rs"
+required-features = ["macros"]
