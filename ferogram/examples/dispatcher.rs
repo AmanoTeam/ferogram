@@ -44,6 +44,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 Ok(())
             },
         ))
+        .fallback(|ctx: Context| async move {
+            if let Some(message) = ctx.message().await {
+                message
+                    .reply(InputMessage::new().text("Fallback message"))
+                    .await?;
+            }
+
+            Ok(())
+        })
         .build()
         .run(
             pool,

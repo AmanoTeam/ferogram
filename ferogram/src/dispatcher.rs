@@ -16,7 +16,7 @@ use tokio::{
     task::{JoinHandle, JoinSet},
 };
 
-use crate::{Context, Handler, Injector, wait_for_ctrl_c};
+use crate::{Context, Handler, Injector, di, wait_for_ctrl_c};
 
 /// A notification sent to stop the dispatcher.
 pub(super) static STOP_DISPATCHER: LazyLock<Arc<Notify>> =
@@ -37,6 +37,8 @@ pub struct Dispatcher {
     update_tx: Sender<Update>,
     /// Whether allow the client to handle updates from itself.
     allow_from_self: bool,
+    /// A fallback endpoint to execute when no handler matches.
+    fallback_endpoint: Option<di::Endpoint>,
 }
 
 impl Dispatcher {
@@ -155,6 +157,11 @@ impl Dispatcher {
                                             }
                                         }
                                     }
+
+                                    if let Some(ref endpoint) = dp.fallback_endpoint
+                                        && let Err(e) = endpoint.handle(injector).await {
+                                            tracing::error!("An error ocurred while executing the fallback endpoint: {e}")
+                                    }
                                 });
                             }
                             Err(e) => {
@@ -193,6 +200,8 @@ pub struct DispatcherBuilder {
     handlers: Vec<Handler>,
     /// Whether allow the client to handle updates from itself.
     allow_from_self: bool,
+    /// A fallback endpoint to execute when no handler matches.
+    fallback_endpoint: Option<di::Endpoint>,
 }
 
 impl DispatcherBuilder {
@@ -204,6 +213,7 @@ impl DispatcherBuilder {
             handlers: Mutex::new(self.handlers),
             update_tx,
             allow_from_self: self.allow_from_self,
+            fallback_endpoint: self.fallback_endpoint,
         }
     }
 
@@ -213,6 +223,26 @@ impl DispatcherBuilder {
     /// any router.
     pub fn add_handler(mut self, handler: Handler) -> Self {
         self.handlers.push(handler);
+        self
+    }
+
+    /// Add a fallback endpoint to the dispatcher.
+    ///
+    /// It only runs when no added handler matches.
+    ///
+    /// Note: unlike normal handlers' endpoint, this fallback endpoint doesn't receives
+    /// any injected resource from filters, so it only has the defaults and dispatcher's
+    /// injected ones.
+    ///
+    /// Default injected resources:
+    /// * [`Client`]: Telegram's wrapper client.
+    /// * [`Update`]: Telegram's update.
+    /// * [`Context`]: Update's context.
+    pub fn fallback<I, H: di::RequestHandler>(
+        mut self,
+        endpoint: impl di::IntoRequestHandler<I, Handler = H>,
+    ) -> Self {
+        self.fallback_endpoint = Some(Box::new(endpoint.into_handler()));
         self
     }
 
@@ -259,6 +289,7 @@ mod tests {
         Dispatcher::builder()
             .allow_from_self()
             .add_handler(handler::new_message(filter::always).then(|| async { Ok(()) }))
+            .fallback(|| async { Ok(()) })
             .build();
     }
 }

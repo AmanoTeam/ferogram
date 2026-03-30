@@ -116,14 +116,14 @@ impl Resource {
 
 pub trait RequestHandler: Send + Sync + 'static {
     /// Handle the request.
-    fn handle(&mut self, injector: Injector) -> BoxFuture<'_, crate::handler::Result>;
+    fn handle(&self, injector: Injector) -> BoxFuture<'_, crate::handler::Result>;
 }
 
 macro_rules! impl_request_handler {
     ($($param:ident),*) => {
         impl<Fut, Output, $($param),*> RequestHandler for RequestHandlerFunc<($($param,)*), Fut>
         where
-            Fut: FnMut($($param),*) -> Output + Send + Sync + 'static,
+            Fut: Fn($($param),*) -> Output + Send + Sync + 'static,
             Output: Future<Output = crate::handler::Result> + Send,
             $($param: Clone + Send + Sync + 'static,)*
         {
@@ -131,7 +131,7 @@ macro_rules! impl_request_handler {
             #[allow(unused_mut)]
             #[allow(non_snake_case)]
             #[allow(unused_variables)]
-            fn handle(&mut self, mut injector: Injector) -> BoxFuture<'_, crate::handler::Result> {
+            fn handle(&self, mut injector: Injector) -> BoxFuture<'_, crate::handler::Result> {
                 $(
                     let $param = Borrow::<$param>::borrow(match injector.take() {
                         Some(ref value) => value,
@@ -183,7 +183,7 @@ macro_rules! impl_into_request_handler {
     ($($param:ident),*) => {
         impl<Fut, Output, $($param),*> IntoRequestHandler<($($param,)*)> for Fut
         where
-            Fut: FnMut($($param),*) -> Output + Send + Sync + 'static,
+            Fut: Fn($($param),*) -> Output + Send + Sync + 'static,
             Output: Future<Output = crate::Result<()>> + Send,
             $($param: Clone + Send + Sync + 'static,)*
         {
