@@ -46,7 +46,9 @@ pub trait ConnectionExt {
         api_id: i32,
         api_hash: &str,
         session: Arc<S>,
-    ) -> impl Future<Output = Result<(SenderPool, Client), ClientError>> + Send;
+    ) -> impl Future<Output = Result<(SenderPool, Client), ClientError>> + Send
+    where
+        S::Error: std::error::Error + Send + Sync + 'static;
 
     /// Like [`Self::connect`] but with a custom [`ClientConfiguration`].
     fn connect_with_configuration<S: Session + 'static>(
@@ -55,7 +57,9 @@ pub trait ConnectionExt {
         api_hash: &str,
         session: Arc<S>,
         configuration: ClientConfiguration,
-    ) -> impl Future<Output = Result<(SenderPool, Client), ClientError>> + Send;
+    ) -> impl Future<Output = Result<(SenderPool, Client), ClientError>> + Send
+    where
+        S::Error: std::error::Error + Send + Sync + 'static;
 }
 
 impl ConnectionExt for Client {
@@ -86,7 +90,11 @@ impl ConnectionExt for Client {
 
         let session_path =
             std::env::var("SESSION_FILE").unwrap_or_else(|_| "grammers.session".to_string());
-        let session = Arc::new(SqliteSession::open(session_path).await?);
+        let session = Arc::new(
+            SqliteSession::open(session_path)
+                .await
+                .map_err(|e| ClientError::SessionError(e.into()))?,
+        );
 
         let account = bot_token.unwrap_or_else(|_| phone_number.unwrap());
         Self::connect_with_configuration(&account, api_id, &api_hash, session, configuration).await
@@ -97,7 +105,10 @@ impl ConnectionExt for Client {
         api_id: i32,
         api_hash: &str,
         session: Arc<S>,
-    ) -> Result<(SenderPool, Self), ClientError> {
+    ) -> Result<(SenderPool, Self), ClientError>
+    where
+        S::Error: std::error::Error + Send + Sync + 'static,
+    {
         Self::connect_with_configuration(account, api_id, api_hash, session, Default::default())
             .await
     }
@@ -108,7 +119,10 @@ impl ConnectionExt for Client {
         api_hash: &str,
         session: Arc<S>,
         configuration: ClientConfiguration,
-    ) -> Result<(SenderPool, Self), ClientError> {
+    ) -> Result<(SenderPool, Self), ClientError>
+    where
+        S::Error: std::error::Error + Send + Sync + 'static,
+    {
         // Test session validity.
         {
             let SenderPool { runner, handle, .. } = SenderPool::new(Arc::clone(&session), api_id);

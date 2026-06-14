@@ -88,7 +88,15 @@ impl Dispatcher {
             let _guard = DispatcherExitGuard;
 
             let mut handler_tasks = JoinSet::new();
-            let mut updates = client.stream_updates(updates, configuration).await;
+            let mut updates = match client.stream_updates(updates, configuration).await {
+                Ok(updates) => updates,
+                Err(e) => {
+                    tracing::error!("Failed to start update stream: {e}");
+                    handle.quit();
+                    let _ = pool_task.await;
+                    return;
+                }
+            };
 
             loop {
                 tokio::select! {
@@ -181,7 +189,9 @@ impl Dispatcher {
             }
 
             tracing::info!("Saving session...");
-            updates.sync_update_state().await;
+            if let Err(e) = updates.sync_update_state().await {
+                tracing::error!("Failed to save session: {e}");
+            }
 
             tracing::info!("Exiting...");
             handle.quit();

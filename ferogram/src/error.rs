@@ -19,6 +19,8 @@ pub enum ClientError {
     DatabaseError(#[from] libsql::Error),
     #[error("failed to establish connection to telegram: {0:?}")]
     ConnectionError(#[from] InvocationError),
+    #[error("failed to use session: {0:?}")]
+    SessionError(Box<dyn std::error::Error + Send + Sync>),
     #[error("variable `{0}` were expected, but none was found")]
     ExpectedVariable(String),
 }

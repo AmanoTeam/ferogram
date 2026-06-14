@@ -51,13 +51,15 @@ impl Context {
     }
 
     /// Cached reference to [`Self::peer`], if it is in cache.
-    pub async fn peer_ref(&self) -> Option<PeerRef> {
+    pub async fn peer_ref(
+        &self,
+    ) -> Result<Option<PeerRef>, Box<dyn std::error::Error + Send + Sync>> {
         match &self.update {
             Update::NewMessage(message) | Update::MessageEdited(message) => {
                 message.peer_ref().await
             }
             Update::CallbackQuery(query) => query.peer_ref().await,
-            _ => None,
+            _ => Ok(None),
         }
     }
 
@@ -75,7 +77,9 @@ impl Context {
     }
 
     /// Cached reference to [`Self::sender`], if it is in cache.
-    pub async fn sender_ref(&self) -> Option<PeerRef> {
+    pub async fn sender_ref(
+        &self,
+    ) -> Result<Option<PeerRef>, Box<dyn std::error::Error + Send + Sync>> {
         match &self.update {
             Update::NewMessage(message) | Update::MessageEdited(message) => {
                 message.sender_ref().await
@@ -83,7 +87,7 @@ impl Context {
             Update::CallbackQuery(query) => query.sender_ref().await,
             Update::InlineQuery(query) => query.sender_ref().await,
             Update::InlineSend(send) => send.sender_ref().await,
-            _ => None,
+            _ => Ok(None),
         }
     }
 
@@ -188,9 +192,9 @@ impl Context {
     }
 
     /// Chat action sender.
-    pub async fn action(&self) -> ActionSender {
-        let peer = self.peer_ref().await.unwrap();
-        self.client.action(peer)
+    pub async fn action(&self) -> Result<ActionSender, InvocationError> {
+        let peer = self.peer_ref().await?.unwrap();
+        Ok(self.client.action(peer))
     }
 
     /// Check if the peer is a group.
@@ -317,7 +321,7 @@ impl Context {
     ///
     /// If the update is a [`CallbackQuery`], it will load the message first.
     pub async fn forward_to_self(&self) -> Result<Message, InvocationError> {
-        let chat = self.client.get_me().await?.to_ref().await.unwrap();
+        let chat = self.client.get_me().await?.to_ref().await?.unwrap();
 
         self.forward_to(chat).await
     }

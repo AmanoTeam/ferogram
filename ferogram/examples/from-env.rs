@@ -15,6 +15,8 @@ use ferogram::prelude::ConnectionExt;
 use grammers::{Client, SenderPool, client::UpdatesConfiguration, update::Update};
 use tokio::{task::JoinSet, time::sleep};
 
+type Result = std::result::Result<(), Box<dyn Error + Send + Sync>>;
+
 async fn handle_update(client: Client, update: Update) {
     match update {
         Update::NewMessage(message) if !message.outgoing() => {
@@ -27,7 +29,7 @@ async fn handle_update(client: Client, update: Update) {
                 sleep(Duration::from_secs(5)).await;
             }
             if let Err(e) = client
-                .send_message(peer.to_ref().await.unwrap(), message.text())
+                .send_message(peer.to_ref().await.unwrap().unwrap(), message.text())
                 .await
             {
                 println!("Failed to respond! {e}");
@@ -38,7 +40,7 @@ async fn handle_update(client: Client, update: Update) {
 }
 
 #[tokio::main(flavor = "multi_thread")]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result {
     println!("Connecting...");
 
     // Connect the client from environment variables.
@@ -65,7 +67,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 ..Default::default()
             },
         )
-        .await;
+        .await?;
 
     loop {
         // Empty finished handlers (you could look at their return value here too.)
@@ -87,7 +89,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     println!("Saving session file...");
-    updates.sync_update_state().await;
+    updates.sync_update_state().await?;
 
     // Pool's `run()` won't finish until all handles are dropped or quit is called.
     // Here there are at least three handles alive: `handle`, `client` and `updates`
