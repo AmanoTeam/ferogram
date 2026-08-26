@@ -237,6 +237,17 @@ impl DispatcherBuilder {
         self
     }
 
+    /// Discover all handlers registered at compile time and add them to the
+    /// dispatcher.
+    #[cfg(feature = "macros")]
+    pub fn discover(mut self) -> Self {
+        for factory in inventory::iter::<crate::discovery::HandlerFactory> {
+            self.handlers.push(factory.build());
+        }
+
+        self
+    }
+
     /// Add a fallback endpoint to the dispatcher.
     ///
     /// It only runs when no added handler matches.

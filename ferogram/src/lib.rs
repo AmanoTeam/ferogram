@@ -8,6 +8,8 @@
 pub mod client;
 mod context;
 pub mod di;
+#[cfg(feature = "macros")]
+pub mod discovery;
 mod dispatcher;
 pub mod error;
 pub mod filter;
