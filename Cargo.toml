@@ -1,35 +1,44 @@
 [workspace]
-members = ["ferogram", "ferogram-macros"]
 resolver = "3"
-
-[patch.crates-io]
-ferogram = { path = "ferogram" }
+members = ["ferogram", "ferogram-macros"]
 
 [workspace.package]
-authors = ["Andriel Ferreira <andrielfr@proton.me>"]
 version = "0.2.0"
-license = "MIT"
+authors = ["Andriel Ferreira <andrielfr@proton.me>"]
+edition = "2024"
 readme = "README.md"
 homepage = "https://github.com/AmanoTeam/ferogram"
 repository = "https://github.com/AmanoTeam/ferogram"
-keywords = ["telegram", "bot", "framework", "grammers"]
-edition = "2024"
+license = "MIT"
+keywords = ["bot", "framework", "grammers", "telegram"]
 
 [workspace.dependencies]
-grammers = { git = "https://codeberg.org/Lonami/grammers", package = "grammers-client" }
-grammers-session = { git = "https://codeberg.org/Lonami/grammers" }
+grammers = {
+  package = "grammers-client",
+  git = "https://codeberg.org/Lonami/grammers",
+  rev = "8170b6"
+}
+grammers-session = {
+  git = "https://codeberg.org/Lonami/grammers",
+  rev = "8170b6"
+}
 
 libsql = "0.9"
-tracing = "0.1"
 thiserror = "2.0"
+tracing = "0.1"
 
 # Futures
-tokio = { version = "1", default-features = false, features = [
-  "sync",
-  "signal",
-  "rt-multi-thread",
-] }
-futures-core = { version = "0.3", default-features = false, features = [
-  "alloc",
-] }
 async-recursion = "1.1"
+futures-core = {
+  version = "0.3",
+  default-features = false,
+  features = ["alloc"]
+}
+tokio = {
+  version = "1",
+  default-features = false,
+  features = ["rt-multi-thread", "signal", "sync"]
+}
+
+[patch.crates-io]
+ferogram = { path = "ferogram" }
