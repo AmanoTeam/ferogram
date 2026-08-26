@@ -12,7 +12,7 @@
 use std::{error::Error, time::Duration};
 
 use ferogram::prelude::ConnectionExt;
-use grammers::{Client, SenderPool, client::UpdatesConfiguration, update::Update};
+use grammers::{Client, SenderPool, sender::UpdatesConfiguration, update::Update};
 use tokio::{task::JoinSet, time::sleep};
 
 async fn handle_update(client: Client, update: Update) {
@@ -27,7 +27,13 @@ async fn handle_update(client: Client, update: Update) {
                 sleep(Duration::from_secs(5)).await;
             }
             if let Err(e) = client
-                .send_message(peer.to_ref().await.unwrap(), message.text())
+                .send_message(
+                    peer.to_ref()
+                        .await
+                        .expect("failed to resolve peer ref")
+                        .expect("peer not in cache"),
+                    message.text(),
+                )
                 .await
             {
                 println!("Failed to respond! {e}");
@@ -57,7 +63,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // To guarantee that all handlers run to completion, they're stored in this set.
     // You can use `task::spawn` if you don't care about dropping unfinished handlers midway.
     let mut handler_tasks = JoinSet::new();
-    let mut updates = client
+    let mut updates = match client
         .stream_updates(
             updates,
             UpdatesConfiguration {
@@ -65,7 +71,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 ..Default::default()
             },
         )
-        .await;
+        .await
+    {
+        Ok(stream) => stream,
+        Err(e) => {
+            println!("Failed to start update stream: {e}");
+            handle.quit();
+            let _ = pool_task.await;
+            return Ok(());
+        }
+    };
 
     loop {
         // Empty finished handlers (you could look at their return value here too.)
@@ -87,7 +102,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     println!("Saving session file...");
-    updates.sync_update_state().await;
+    if let Err(e) = updates.sync_update_state().await {
+        println!("Failed to sync update state: {e}");
+    }
 
     // Pool's `run()` won't finish until all handles are dropped or quit is called.
     // Here there are at least three handles alive: `handle`, `client` and `updates`

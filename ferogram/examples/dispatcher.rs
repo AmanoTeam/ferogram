@@ -12,7 +12,7 @@
 use std::error::Error;
 
 use ferogram::prelude::*;
-use grammers::{Client, client::UpdatesConfiguration, message::InputMessage, update::Message};
+use grammers::{Client, message::InputMessage, sender::UpdatesConfiguration, update::Message};
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<(), Box<dyn Error>> {
