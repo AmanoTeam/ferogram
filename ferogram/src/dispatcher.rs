@@ -7,7 +7,7 @@
 
 use std::sync::{Arc, LazyLock};
 
-use grammers::{Client, SenderPool, client::UpdatesConfiguration, peer::Peer, update::Update};
+use grammers::{Client, SenderPool, peer::Peer, sender::UpdatesConfiguration, update::Update};
 use tokio::{
     sync::{
         Mutex, Notify,
@@ -88,7 +88,16 @@ impl Dispatcher {
             let _guard = DispatcherExitGuard;
 
             let mut handler_tasks = JoinSet::new();
-            let mut updates = client.stream_updates(updates, configuration).await;
+            let mut updates = match client.stream_updates(updates, configuration).await {
+                Ok(stream) => stream,
+                Err(e) => {
+                    tracing::error!("Failed to start update stream: {e}");
+                    handle.quit();
+                    let _ = pool_task.await;
+
+                    return;
+                }
+            };
 
             loop {
                 tokio::select! {
@@ -181,7 +190,9 @@ impl Dispatcher {
             }
 
             tracing::info!("Saving session...");
-            updates.sync_update_state().await;
+            if let Err(e) = updates.sync_update_state().await {
+                tracing::warn!("Failed to sync update state: {e}");
+            }
 
             tracing::info!("Exiting...");
             handle.quit();
@@ -257,16 +268,6 @@ impl DispatcherBuilder {
 
 /// A RAII drop guard that guarantees the [`crate::idle`] is notified whenever
 /// the dispatcher task exits, regardless of how it happens.
-///
-/// By instantiating this at the very top of the dispatcher task, we ensure
-/// that `DISPATCHER_STOPPED.notify_one()` is called under all circumstances:
-/// 1. **Clean Exit:** The task finishes successfully and drops the guard at the end of the scope.
-/// 2. **Early Return:** The task encounters a `return` or `break` and drops the guard.
-/// 3. **Dispatcher Panic:** The task encounters a fatal panic. Rust's stack unwinding
-///    mechanism will automatically call `drop()` on this guard before destroying the task.
-///
-/// Without this guard, a panicking dispatcher would silently die in the background,
-/// causing the `idle()` loop to hang forever waiting for a shutdown signal that will never arrive.
 struct DispatcherExitGuard;
 
 impl Drop for DispatcherExitGuard {

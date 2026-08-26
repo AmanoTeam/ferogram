@@ -5,7 +5,7 @@
 
 //! Update context traits and methods.
 
-use std::{ops::Deref, sync::Arc, time::Duration};
+use std::{error::Error, ops::Deref, sync::Arc, time::Duration};
 
 use grammers::{
     Client, InvocationError,
@@ -51,13 +51,15 @@ impl Context {
     }
 
     /// Cached reference to [`Self::peer`], if it is in cache.
-    pub async fn peer_ref(&self) -> Option<PeerRef> {
+    pub async fn peer_ref(
+        &self,
+    ) -> Result<Option<PeerRef>, Box<dyn Error + Send + Sync>> {
         match &self.update {
             Update::NewMessage(message) | Update::MessageEdited(message) => {
                 message.peer_ref().await
             }
             Update::CallbackQuery(query) => query.peer_ref().await,
-            _ => None,
+            _ => Ok(None),
         }
     }
 
@@ -75,7 +77,9 @@ impl Context {
     }
 
     /// Cached reference to [`Self::sender`], if it is in cache.
-    pub async fn sender_ref(&self) -> Option<PeerRef> {
+    pub async fn sender_ref(
+        &self,
+    ) -> Result<Option<PeerRef>, Box<dyn Error + Send + Sync>> {
         match &self.update {
             Update::NewMessage(message) | Update::MessageEdited(message) => {
                 message.sender_ref().await
@@ -83,7 +87,7 @@ impl Context {
             Update::CallbackQuery(query) => query.sender_ref().await,
             Update::InlineQuery(query) => query.sender_ref().await,
             Update::InlineSend(send) => send.sender_ref().await,
-            _ => None,
+            _ => Ok(None),
         }
     }
 
@@ -189,7 +193,11 @@ impl Context {
 
     /// Chat action sender.
     pub async fn action(&self) -> ActionSender {
-        let peer = self.peer_ref().await.unwrap();
+        let peer = self
+            .peer_ref()
+            .await
+            .expect("failed to resolve peer ref")
+            .expect("peer not in cache");
         self.client.action(peer)
     }
 
@@ -317,7 +325,14 @@ impl Context {
     ///
     /// If the update is a [`CallbackQuery`], it will load the message first.
     pub async fn forward_to_self(&self) -> Result<Message, InvocationError> {
-        let chat = self.client.get_me().await?.to_ref().await.unwrap();
+        let chat = self
+            .client
+            .get_me()
+            .await?
+            .to_ref()
+            .await
+            .expect("failed to resolve self peer ref")
+            .expect("self user not in cache");
 
         self.forward_to(chat).await
     }

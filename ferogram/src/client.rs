@@ -5,7 +5,7 @@
 
 //! Client traits and helpers.
 
-use std::sync::Arc;
+use std::{sync::Arc, error::Error};
 
 use grammers::{Client, SenderPool, SignInError, client::ClientConfiguration};
 use grammers_session::{Session, storages::SqliteSession};
@@ -41,21 +41,27 @@ pub trait ConnectionExt {
     /// * `api_id`: developer's API ID from my.telegram.org
     /// * `api_hash`: developer's API HASH from my.telegram.org
     /// * `session`: any object that implements [`Session`]
-    fn connect<S: Session + 'static>(
+    fn connect<S>(
         account: &str,
         api_id: i32,
         api_hash: &str,
         session: Arc<S>,
-    ) -> impl Future<Output = Result<(SenderPool, Client), ClientError>> + Send;
+    ) -> impl Future<Output = Result<(SenderPool, Client), ClientError>> + Send
+    where
+        S: Session + 'static,
+        S::Error: Error + Send + Sync + 'static;
 
     /// Like [`Self::connect`] but with a custom [`ClientConfiguration`].
-    fn connect_with_configuration<S: Session + 'static>(
+    fn connect_with_configuration<S>(
         account: &str,
         api_id: i32,
         api_hash: &str,
         session: Arc<S>,
         configuration: ClientConfiguration,
-    ) -> impl Future<Output = Result<(SenderPool, Client), ClientError>> + Send;
+    ) -> impl Future<Output = Result<(SenderPool, Client), ClientError>> + Send
+    where
+        S: Session + 'static,
+        S::Error: Error + Send + Sync + 'static;
 }
 
 impl ConnectionExt for Client {
@@ -86,29 +92,41 @@ impl ConnectionExt for Client {
 
         let session_path =
             std::env::var("SESSION_FILE").unwrap_or_else(|_| "grammers.session".to_string());
-        let session = Arc::new(SqliteSession::open(session_path).await?);
+        let session = Arc::new(
+            SqliteSession::open(session_path)
+                .await
+                .map_err(|e| ClientError::SessionError(Box::new(e)))?,
+        );
 
         let account = bot_token.unwrap_or_else(|_| phone_number.unwrap());
         Self::connect_with_configuration(&account, api_id, &api_hash, session, configuration).await
     }
 
-    async fn connect<S: Session + 'static>(
+    async fn connect<S>(
         account: &str,
         api_id: i32,
         api_hash: &str,
         session: Arc<S>,
-    ) -> Result<(SenderPool, Self), ClientError> {
+    ) -> Result<(SenderPool, Self), ClientError>
+    where
+        S: Session + 'static,
+        S::Error: Error + Send + Sync + 'static,
+    {
         Self::connect_with_configuration(account, api_id, api_hash, session, Default::default())
             .await
     }
 
-    async fn connect_with_configuration<S: Session + 'static>(
+    async fn connect_with_configuration<S>(
         account: &str,
         api_id: i32,
         api_hash: &str,
         session: Arc<S>,
         configuration: ClientConfiguration,
-    ) -> Result<(SenderPool, Self), ClientError> {
+    ) -> Result<(SenderPool, Self), ClientError>
+    where
+        S: Session + 'static,
+        S::Error: Error + Send + Sync + 'static,
+    {
         // Test session validity.
         {
             let SenderPool { runner, handle, .. } = SenderPool::new(Arc::clone(&session), api_id);
