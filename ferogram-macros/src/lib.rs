@@ -8,9 +8,9 @@
 mod handler;
 
 use proc_macro::TokenStream;
-use syn::{Expr, ItemFn};
+use syn::{Expr, ItemFn, parse::Parser, punctuated::Punctuated, token::Comma};
 
-use crate::handler::{UpdateType, new_handler};
+use crate::handler::{UpdateType, new_handler, new_multi_handler};
 
 /// Build a new `NewMessage` handler.
 ///
@@ -136,4 +136,37 @@ pub fn inline_send(attr: TokenStream, input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as ItemFn);
 
     new_handler(UpdateType::InlineSend, filters, input)
+}
+
+/// Build multiple handlers from a single function, one per update type entry.
+///
+/// Each entry has the form `update_type(filter)` where `update_type` is one of
+/// `new_message`, `message_edited`, `message_deleted`, `callback_query`,
+/// `inline_query`, or `inline_send`.
+///
+/// The function body is shared across all generated handlers. Use parameter
+/// types that are injected by every listed update type - `Context` is always
+/// injected and lets you access the specific update inside the body.
+///
+/// # Examples
+///
+/// ```ignore
+/// use ferogram::prelude::*;
+/// #[handler::multi(
+///     new_message(command("/start")),
+///     callback_query(data("start")),
+/// )]
+/// async fn start(ctx: Context) -> Result<()> {
+///     Ok(())
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn multi(attr: TokenStream, input: TokenStream) -> TokenStream {
+    let entries = match Punctuated::<Expr, Comma>::parse_terminated.parse(attr) {
+        Ok(e) => e,
+        Err(err) => return err.to_compile_error().into(),
+    };
+    let input = syn::parse_macro_input!(input as ItemFn);
+
+    new_multi_handler(entries, input)
 }

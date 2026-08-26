@@ -6,9 +6,9 @@
 //! Handler builder macros.
 
 use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
-use quote::quote;
-use syn::{Expr, ItemFn};
+use proc_macro2::{Span, TokenStream as TokenStream2};
+use quote::{format_ident, quote};
+use syn::{Expr, ItemFn, punctuated::Punctuated, token::Comma};
 
 /// Build a new handler.
 pub fn new_handler(update_type: UpdateType, filters: Option<Expr>, input: ItemFn) -> TokenStream {
@@ -25,15 +25,7 @@ pub fn new_handler(update_type: UpdateType, filters: Option<Expr>, input: ItemFn
         transform_filter(&expr)
     });
 
-    let handler = match update_type {
-        UpdateType::NewMessage => quote! { ::ferogram::handler::new_message },
-        UpdateType::MessageEdited => quote! { ::ferogram::handler::message_edited },
-        UpdateType::MessageDeleted => quote! { ::ferogram::handler::message_deleted },
-        UpdateType::CallbackQuery => quote! { ::ferogram::handler::callback_query },
-        UpdateType::InlineQuery => quote! { ::ferogram::handler::inline_query },
-        UpdateType::InlineSend => quote! { ::ferogram::handler::inline_send },
-        UpdateType::Raw => quote! { ::ferogram::handler::new_raw },
-    };
+    let handler = handler_fn_for(&update_type);
 
     quote! {
         #(#attrs)*
@@ -50,6 +42,111 @@ pub fn new_handler(update_type: UpdateType, filters: Option<Expr>, input: ItemFn
         }
     }
     .into()
+}
+
+/// Build multiple handlers.
+pub fn new_multi_handler(entries: Punctuated<Expr, Comma>, input: ItemFn) -> TokenStream {
+    let ItemFn {
+        attrs,
+        vis,
+        sig,
+        block,
+    } = input;
+
+    let name = sig.ident.clone();
+    let inputs = sig.inputs.clone();
+
+    let mut handlers = Vec::new();
+
+    for entry in entries {
+        let Expr::Call(call) = entry else {
+            return syn::Error::new_spanned(
+                entry,
+                "expected an update type call like `new_message(filter)`",
+            )
+            .to_compile_error()
+            .into();
+        };
+
+        let type_ident = match &*call.func {
+            Expr::Path(path_expr) => path_expr.path.get_ident(),
+            _ => None,
+        };
+        let Some(type_ident) = type_ident else {
+            return syn::Error::new_spanned(&call.func, "expected an update type name")
+                .to_compile_error()
+                .into();
+        };
+
+        let r#type = type_ident.to_string();
+        let update_type = match UpdateType::try_from(r#type.as_str()) {
+            Ok(t) => t,
+            Err(err) => {
+                return syn::Error::new_spanned(type_ident, err)
+                    .to_compile_error()
+                    .into();
+            }
+        };
+        let handler = handler_fn_for(&update_type);
+
+        if call.args.len() > 1 {
+            return syn::Error::new_spanned(
+                &call.args,
+                "expected at most one filter expression per update type",
+            )
+            .to_compile_error()
+            .into();
+        }
+
+        let filter = if let Some(filter_expr) = call.args.first() {
+            transform_filter(filter_expr)
+        } else {
+            quote! { ::ferogram::filter::always }
+        };
+
+        let fn_name = format_ident!("{}__{}", name, r#type);
+        handlers.push(quote! {
+            #[allow(non_snake_case)]
+            #(#attrs)*
+            #vis fn #fn_name() -> ::ferogram::Handler {
+
+                #handler(#filter)
+                    .then(|#inputs| async move {
+                        #block
+                    })
+            }
+
+            ::ferogram::discovery::submit! {
+                ::ferogram::discovery::HandlerFactory::new(#fn_name)
+            }
+        });
+    }
+
+    if handlers.is_empty() {
+        return syn::Error::new(
+            Span::call_site(),
+            "multi handler requires at least one update type entry",
+        )
+        .to_compile_error()
+        .into();
+    }
+
+    quote! {
+        #(#handlers)*
+    }
+    .into()
+}
+
+fn handler_fn_for(update_type: &UpdateType) -> TokenStream2 {
+    match update_type {
+        UpdateType::NewMessage => quote! { ::ferogram::handler::new_message },
+        UpdateType::MessageEdited => quote! { ::ferogram::handler::message_edited },
+        UpdateType::MessageDeleted => quote! { ::ferogram::handler::message_deleted },
+        UpdateType::CallbackQuery => quote! { ::ferogram::handler::callback_query },
+        UpdateType::InlineQuery => quote! { ::ferogram::handler::inline_query },
+        UpdateType::InlineSend => quote! { ::ferogram::handler::inline_send },
+        UpdateType::Raw => quote! { ::ferogram::handler::new_raw },
+    }
 }
 
 /// Recursively transforms macro filters syntax into ferogram actual filters syntax.
@@ -101,4 +198,23 @@ pub enum UpdateType {
     InlineSend,
     #[default]
     Raw,
+}
+
+impl TryFrom<&str> for UpdateType {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "new_message" => Ok(Self::NewMessage),
+            "message_edited" => Ok(Self::MessageEdited),
+            "message_deleted" => Ok(Self::MessageDeleted),
+            "callback_query" => Ok(Self::CallbackQuery),
+            "inline_query" => Ok(Self::InlineQuery),
+            "inline_send" => Ok(Self::InlineSend),
+            "raw" => Err("multi handler doesn't support raw update type".into()),
+            _ => Err(format!(
+                "unknown update type `{value}`; expected one of: new_message, message_edited, message_deleted, callback_query, inline_query, inline_send"
+            )),
+        }
+    }
 }

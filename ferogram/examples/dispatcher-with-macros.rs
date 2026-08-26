@@ -35,6 +35,14 @@ async fn start(message: Message, params: CommandParams) {
     Ok(())
 }
 
+#[handler::multi(new_message(command("/help")), callback_query(command("help")))]
+async fn help(ctx: Context) {
+    ctx.reply(InputMessage::new().text("Send \"/start <id> hi\" to test the bot."))
+        .await?;
+
+    Ok(())
+}
+
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<(), Box<dyn Error>> {
     println!("Connecting...");
