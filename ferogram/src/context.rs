@@ -51,9 +51,7 @@ impl Context {
     }
 
     /// Cached reference to [`Self::peer`], if it is in cache.
-    pub async fn peer_ref(
-        &self,
-    ) -> Result<Option<PeerRef>, Box<dyn Error + Send + Sync>> {
+    pub async fn peer_ref(&self) -> Result<Option<PeerRef>, Box<dyn Error + Send + Sync>> {
         match &self.update {
             Update::NewMessage(message) | Update::MessageEdited(message) => {
                 message.peer_ref().await
@@ -77,9 +75,7 @@ impl Context {
     }
 
     /// Cached reference to [`Self::sender`], if it is in cache.
-    pub async fn sender_ref(
-        &self,
-    ) -> Result<Option<PeerRef>, Box<dyn Error + Send + Sync>> {
+    pub async fn sender_ref(&self) -> Result<Option<PeerRef>, Box<dyn Error + Send + Sync>> {
         match &self.update {
             Update::NewMessage(message) | Update::MessageEdited(message) => {
                 message.sender_ref().await

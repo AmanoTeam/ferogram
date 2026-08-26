@@ -5,7 +5,7 @@
 
 //! Client traits and helpers.
 
-use std::{sync::Arc, error::Error};
+use std::{error::Error, sync::Arc};
 
 use grammers::{Client, SenderPool, SignInError, client::ClientConfiguration};
 use grammers_session::{Session, storages::SqliteSession};
