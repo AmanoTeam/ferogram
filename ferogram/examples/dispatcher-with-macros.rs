@@ -43,7 +43,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let (pool, client) = Client::from_env().await?;
 
     // Build and run the dispatcher.
-    Dispatcher::builder().add_handler(start()).build().run(
+    Dispatcher::builder().discover().build().run(
         pool,
         client,
         UpdatesConfiguration {

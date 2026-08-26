@@ -44,6 +44,10 @@ pub fn new_handler(update_type: UpdateType, filters: Option<Expr>, input: ItemFn
                     #block
                 })
         }
+
+        ::ferogram::discovery::submit! {
+            ::ferogram::discovery::HandlerFactory::new(#name)
+        }
     }
     .into()
 }
