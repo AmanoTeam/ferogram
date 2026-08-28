@@ -33,6 +33,8 @@ pub(super) static DISPATCHER_STOPPED: LazyLock<Arc<Notify>> =
 pub struct Dispatcher {
     /// Routes to be dispatched based on its filters.
     handlers: Mutex<Vec<Handler>>,
+    /// Resources injected into every handler's injector.
+    resources: di::Injector,
     /// Update sender to contexts.
     update_tx: Sender<Update>,
     /// Whether allow the client to handle updates from itself.
@@ -115,6 +117,8 @@ impl Dispatcher {
                                 let update_rx = dp.update_tx.subscribe();
                                 let context = Context::new(client.clone(), update.clone(), update_rx);
                                 injector.push(context);
+
+                                injector.extend(dp.resources.clone());
 
                                 if let Err(e) = dp.update_tx.send(update.clone()) {
                                     tracing::warn!("No active subscribers for update channel: {e}");
@@ -209,6 +213,8 @@ impl Dispatcher {
 pub struct DispatcherBuilder {
     /// Routes to be dispatched based on its filters.
     handlers: Vec<Handler>,
+    /// Resources injected into every handler's injector.
+    resources: di::Injector,
     /// Whether allow the client to handle updates from itself.
     allow_from_self: bool,
     /// A fallback endpoint to execute when no handler matches.
@@ -222,6 +228,7 @@ impl DispatcherBuilder {
 
         Dispatcher {
             handlers: Mutex::new(self.handlers),
+            resources: self.resources,
             update_tx,
             allow_from_self: self.allow_from_self,
             fallback_endpoint: self.fallback_endpoint,
@@ -245,6 +252,16 @@ impl DispatcherBuilder {
             self.handlers.push(factory.build());
         }
 
+        self
+    }
+
+    /// Inject a resource available to all handlers.
+    ///
+    /// Injected resources are added to every handler's injector alongside
+    /// the defaults ([`Client`], [`Update`], [`Context`]) and any resources
+    /// pushed by filters.
+    pub fn inject<R: Clone + Send + Sync + 'static>(mut self, value: R) -> Self {
+        self.resources.push(value);
         self
     }
 
